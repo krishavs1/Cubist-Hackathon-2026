@@ -84,8 +84,7 @@ Each prototype was scored against **three fixed Stockfish opponents**: **skill 1
 
 ---
 
-### 4.1 Equations (how anchor Elo is turned into one number)
-
+## 4.1 Equations (how anchor Elo is turned into one number)
 
 For one anchor with $W$ wins, $L$ losses, and $D$ draws, let $n = W+L+D$ and define the **empirical score**
 
@@ -98,14 +97,14 @@ The implementation clamps $s$ into $(10^{-4},\,1-10^{-4})$ so logarithms stay fi
 **Trinomial variance** of the score (treating each game as W / D / L), with $\mu = s$:
 
 $$
-\operatorname{Var}(s)
+\mathrm{Var}(s)
 = \frac{W}{n}(1-\mu)^2 + \frac{D}{n}\left(\frac{1}{2}-\mu\right)^2 + \frac{L}{n}(0-\mu)^2.
 $$
 
 **Standard error of the mean score:**
 
 $$
-\mathrm{SE}(s) = \sqrt{\frac{\operatorname{Var}(s)}{n}}.
+\mathrm{SE}(s) = \sqrt{\frac{\mathrm{Var}(s)}{n}}.
 $$
 
 The **Elo offset** of the candidate relative to the anchor implied by $s$ (logistic / Bradley–Terry form used in `grade.py`):

@@ -1,6 +1,6 @@
 import sys
 import chess
-from engine.search import best_move
+from engine.search import best_move, best_move_timed
 
 ENGINE_NAME = "HackathonEngine"
 ENGINE_AUTHOR = "Cubist Hackathon 2026"
@@ -33,11 +33,17 @@ class UCIAdapter:
             return None
 
         if cmd == "go":
+            movetime = None
             depth = self.depth
             for i, p in enumerate(parts):
-                if p == "depth" and i + 1 < len(parts):
+                if p == "movetime" and i + 1 < len(parts):
+                    movetime = int(parts[i + 1])
+                elif p == "depth" and i + 1 < len(parts):
                     depth = int(parts[i + 1])
-            move = best_move(self.board, depth)
+            if movetime is not None:
+                move = best_move_timed(self.board, movetime)
+            else:
+                move = best_move(self.board, depth)
             return f"bestmove {move.uci()}" if move else "bestmove 0000"
 
         if cmd == "quit":
@@ -71,6 +77,6 @@ class UCIAdapter:
         for line in sys.stdin:
             response = self.handle(line)
             if response == "__quit__":
-                break
+                sys.exit(0)
             if response:
                 print(response, flush=True)

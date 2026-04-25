@@ -1,3 +1,4 @@
+import time
 import chess
 from typing import Optional
 from engine.evaluate import evaluate, CHECKMATE_SCORE, PIECE_VALUES
@@ -56,4 +57,19 @@ def best_move(board: chess.Board, depth: int = 3) -> Optional[chess.Move]:
         if score > best_score:
             best_score = score
             best = move
+    return best
+
+
+def best_move_timed(board: chess.Board, movetime_ms: int) -> Optional[chess.Move]:
+    """Iterative deepening within a time budget. Uses 90% of movetime as the deadline."""
+    deadline = time.time() + movetime_ms / 1000.0 * 0.9
+    best = None
+    for depth in range(1, 8):
+        if time.time() >= deadline:
+            break
+        move = best_move(board, depth)
+        if move is not None:
+            best = move
+        if time.time() >= deadline:
+            break
     return best

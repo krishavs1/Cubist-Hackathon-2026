@@ -1,13 +1,11 @@
 [Event "?"]
 [Site "?"]
-[Date "2026.04.25"]
-[Round "16"]
+[Date "????.??.??"]
+[Round "?"]
 [White "stockfish-skill-1"]
 [Black "engine"]
 [Result "1/2-1/2"]
+[FEN "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
+[SetUp "1"]
 
-<<<<<<< HEAD
-1. e4 Nc6 2. Nf3 Nf6 3. Bd3 Nb4 4. e5 Ng4 5. Bf5 Nh6 6. Bh3 d5 7. O-O Bxh3 8. c3 Bg4 9. d3 Bxf3 10. Qxf3 Nc2 11. e6 Nxa1 12. Bxh6 fxe6 13. Bg5 Nc2 14. Qd1 h6 15. Qxc2 hxg5 16. f4 Qd6 17. c4 gxf4 18. c5 Qe5 19. Nd2 Qe3+ 20. Rf2 O-O-O 21. Nb3 Kb8 22. a4 e5 23. Qc3 e6 24. h3 Be7 25. Na5 Bxc5 26. Kh1 Qxf2 27. Nc6+ bxc6 28. d4 Qxd4 29. Qe1 Qxb2 30. Qg1 Bxg1 31. a5 f3 32. g4 Rxh3+ 33. Kxg1 Rdh8 34. a6 Rg8 35. g5 Rgh8 36. g6 Rg8 37. Kf1 Rgh8 38. Kg1 Rg8 39. Kf1 Rgh8 1/2-1/2
-=======
-1. e4 Nf6 2. e5 Ne4 3. Nf3 Nc6 4. d4 e6 5. Bd3 Bb4+ 6. Nfd2 Nxd2 7. c3 Nxb1 8. f4 Qh4+ 9. g3 Bxc3+ 10. bxc3 Qe7 11. Bxb1 h6 12. Qa4 b5 13. Qd1 Bb7 14. O-O O-O 15. Qc2 g6 16. f5 gxf5 17. a4 bxa4 18. Rxa4 d5 19. Qb3 Bc8 20. Bxh6 Rd8 21. Qa2 Bb7 22. Qd2 a6 23. Qg2 f4 24. Rxf4 Re8 25. Qc2 f5 26. exf6 Qf7 27. Rg4+ Kh8 28. h3 Rad8 29. Bg7+ Qxg7 30. Rxg7 Rg8 31. Rh7# 1-0
->>>>>>> 68457eb2691f22766aeaf34ca114a91e784ba8d3
+2. d3 dxe4 3. Be3 exd3 4. Nf3 Nf6 5. Nc3 Nc6 6. Qxd3 Qxd3 7. Bf4 Qxf1+ 8. Rxf1 Bf5 9. Nb5 Bxc2 10. Nxc7+ Kd7 11. Nxa8 e6 12. Kd2 Bg6 13. Nc7 Bb4+ 14. Kd1 Ne4 15. Ke2 Bc5 16. Rad1+ Ke7 17. Nb5 a6 18. Nc3 Nxc3+ 19. bxc3 Kf6 20. Rfe1 Bxf2 21. Kxf2 Kf5 22. Bg3 Re8 23. Nh4+ Kf6 24. Nxg6 Kxg6 25. Kg1 Kf5 26. Re2 h6 27. Ree1 h5 28. Rd7 e5 29. Rb1 Ke6 30. Rdxb7 e4 31. R7b2 Rd8 32. Kh1 e3 33. Rb6 e2 34. Rxc6+ Kf5 35. Rg1 a5 36. Rc5+ Ke6 37. h4 a4 38. Re5+ Kf6 39. Bf4 a3 40. g4 hxg4 41. Rxe2 Kf5 42. Bg3 Rd3 43. Re5+ Kf6 44. Rb5 Rxc3 45. Rb6+ Kf5 46. Bb8 Rh3+ 47. Bh2 Rxh4 48. Rg2 Rh8 49. Rb3 g3 50. Rf3+ Ke5 51. Rgxg3 Kd5 52. Rg1 Re8 53. Bf4 Rh8+ 54. Kg2 Re8 55. Rb1 Re2+ 56. Kh3 Rxa2 57. Rbf1 Re2 58. Rb3 a2 59. Ra1 Rc2 60. Rb8 Rc3+ 61. Kg4 Rc2 62. Rd8+ Ke6 63. Rd6+ Ke7 64. Rd4 Rg2+ 65. Bg3 Ke6 66. Rb4 f5+ 67. Kh4 g5+ 68. Kh3 Rd2 69. Ra4 g4+ 70. Kh4 f4 71. Be1 Rh2+ 72. Kxg4 Rg2+ 73. Kh5 Rh2+ 74. Kg5 Rg2+ 75. Kxf4 Kd6 76. R4xa2 Rxa2 77. Rxa2 Kd5 78. Ra6 Kd4 79. Bh4 Kd5 80. Be7 Kd4 81. Rd6+ Kc5 82. Ke5 Kc4 83. Rg6 Kd3 84. Rg5 Kc3 85. Bd6 Kd3 86. Ke6 Kd4 87. Kf7 Ke3 88. Rg2 Kf3 89. Rg8 Ke3 90. Rg6 Kd4 91. Rg5 Ke3 92. Rg3+ Kd4 1/2-1/2

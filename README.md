@@ -1,39 +1,52 @@
-# Chess Engine Elo Benchmark (Pro-Level Rigor)
+# Cubist Systematic Hackathon: AI Methodology Research Lab
 
-This repository is a professional-grade framework for measuring the absolute Elo of chess engines using **Balanced Multi-Anchor Calibration**.
+This repository is a quantitative research environment designed to evaluate AI-assisted software engineering methodologies through the lens of chess engine development.
 
-### 1. The UCI Contract
-Your engine must be a standalone executable that speaks the UCI protocol.
-- **Entry Point**: `src/<your-name>/engine/run.sh`
-- **Handshake**: Must respond to `uci` with `uciok` and `isready` with `readyok`.
-- **Search**: Must respond to `go movetime <ms>` with `bestmove <move>`.
+## 1. THE EVALUATION SUITE (`elo-test/`)
 
-### 2. Validation
-Before grading, ensure your engine is UCI-compliant and produces legal moves:
+We use a three-stage evaluation pipeline to determine the winning methodology.
+
+### Stage 1: Absolute Elo Calibration
+Every engine is tested against a **Stockfish Calibration Curve** (Skill Levels 1, 3, and 5). 
+- **Rigor**: Balanced Opening Pairs (colors swapped for the same position).
+- **Math**: Fishtest Trinomial Model (Standard Error calculation).
+- **Run**: `python3 elo-test/grade.py --games 60 --movetime 100`
+
+### Stage 2: Cross-Validation (Battle Royale)
+Engines in `src/` play directly against each other to verify that absolute Elo gaps translate to real-world performance.
+- **Run**: `python3 elo-test/grade.py --games 60 --cross-validate --movetime 100`
+
+### Stage 3: AMES Efficacy Analysis
+The **Alpha Methodology Efficiency Score (AMES)** is calculated based on:
+1.  **SF Alpha (40%)**: Absolute performance vs. Stockfish.
+2.  **Beta Alpha (30%)**: Relative performance in direct combat.
+3.  **Token Efficiency (30%)**: Elo gained per 1,000 tokens used.
+- **Run**: `python3 elo-test/mes_calculator.py`
+
+---
+
+## 2. THE WORKSTREAMS (`src/`)
+
+- **`zero-shot/`**: Control group (single-pass implementation).
+- **`tdd/`**: Engineering rigor (test-first implementation).
+- **`toy-to-scale/`**: Evolutionary complexity (staged scaling).
+- **`megaprompt/`**: Knowledge injection (high-heuristic injection).
+
+---
+
+## 3. HOW TO RUN THE FULL EVALUATION
+
+To generate the final leaderboard for the judges, execute this sequence:
+
 ```bash
-python3 elo-test/test_engine.py --engine src/<your-name>/engine/run.sh
+# 1. Calibrate Absolute Elos
+python3 elo-test/grade.py --games 30
+
+# 2. Run Engine vs Engine Battle Royale
+python3 elo-test/grade.py --games 30 --cross-validate
+
+# 3. Calculate Final Methodology Efficacy
+python3 elo-test/mes_calculator.py
 ```
 
-### 3. Pro-Level Grading
-We measure "True Elo" using a **Calibration Curve** against multiple Stockfish skill levels.
-
-```bash
-# Run 60 games (20 games per anchor x 3 anchors)
-python3 elo-test/grade.py --games 60 --movetime 100
-```
-
-### 4. Cross-Validation (Optional)
-To validate the estimated Elos, you can run engines in `src/` against each other.
-
-```bash
-# Run 60 games between all methodology engines
-python3 elo-test/grade.py --cross-validate --games 60
-```
-
-### 5. Rigorous Mechanisms
-1.  **Balanced Opening Pairs**: Every game is played as a pair from a standard opening (Sicilian, French, etc.). Colors are swapped for the second game. This eliminates "White advantage" and "Opening bias."
-2.  **Multi-Anchor Calibration**: Your engine is tested against Stockfish Skill 1 (1000 Elo), Skill 3 (1200 Elo), and Skill 5 (1500 Elo). This eliminates "Style bias."
-3.  **Maximum Likelihood Estimation (MLE)**: Instead of a simple average, we use **Inverse-Variance Weighting** to aggregate the results into a single absolute Elo with a unified 95% Confidence Interval.
-
-### 5. Results
-Detailed game statistics and the rigorous Elo range are stored in `src/<your-name>/results.json`.
+Results are stored in `src/<methodology>/results.json` and `src/<methodology>/DISCOVERY.md`.

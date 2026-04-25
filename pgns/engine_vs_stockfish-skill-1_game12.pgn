@@ -1,13 +1,11 @@
 [Event "?"]
 [Site "?"]
-[Date "2026.04.25"]
-[Round "12"]
+[Date "????.??.??"]
+[Round "?"]
 [White "stockfish-skill-1"]
 [Black "engine"]
 [Result "1-0"]
+[FEN "rnbqkbnr/pp1ppppp/8/2p5/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 2"]
+[SetUp "1"]
 
-<<<<<<< HEAD
-1. e3 Nc6 2. Bb5 a6 3. Bxc6 dxc6 4. d4 Nf6 5. Nd2 Bg4 6. Ndf3 e5 7. Ne2 Bb4+ 8. Nd2 Bxe2 9. Kxe2 exd4 10. Nc4 Qd5 11. Qxd4 Qe6 12. Rd1 O-O 13. Bd2 c5 14. Qh4 Rfd8 15. b3 Bxd2 16. Rxd2 Re8 17. Qh3 Ng4 18. Rad1 Rac8 19. Rd5 b6 20. a4 Rb8 21. R1d3 Qe4 22. a5 bxa5 23. f3 Qe6 24. Qxg4 f5 25. Qg5 h6 26. Qxf5 Qc6 27. Rd1 g6 28. Qd7 Rxe3+ 29. Nxe3 Qxd7 30. Rxd7 Rc8 31. Rd8+ Rxd8 32. Rxd8+ Kh7 33. Ng4 g5 34. Ke3 Kg7 35. Ke2 Kh7 36. Rc8 Kg7 37. Ne3 Kh7 38. Kd3 Kg7 39. Ke4 Kh7 40. Rxc7+ Kh8 41. Rxc5 Kh7 42. Rxa5 Kg8 43. Rxa6 Kh7 44. c3 Kg7 45. Rd6 Kh7 46. Kd5 h5 47. g4 h4 48. Nf1 Kg7 49. Ne3 h3 50. b4 Kh7 51. Nf5 Kg8 52. Rf6 Kh8 53. Ke6 Kg8 54. Kd5 Kh8 55. c4 Kg8 56. Ke6 Kh8 57. Kf7 Kh7 58. b5 Kh8 59. Re6 Kh7 60. f4 gxf4 61. c5 Kh8 62. b6 Kh7 63. Rc6 Kh8 64. Rg6 Kh7 65. g5 Kh8 66. c6 Kh7 67. Rh6# 1-0
-=======
-1. e4 Nf6 2. e5 Ne4 3. c3 Nc6 4. d3 Nc5 5. b4 Ne6 6. d4 Rg8 7. Qc2 h5 8. d5 Nxe5 9. f4 Nxf4 10. Qh7 Nxg2+ 11. Kf2 Ng4+ 12. Kxg2 Ne3+ 13. Kg3 Nxf1+ 14. Kg2 Ne3+ 15. Bxe3 e5 16. Nd2 Bxb4 17. a3 Rf8 18. axb4 d6 19. h3 Qf6 20. Ngf3 Bd7 21. Kh2 O-O-O 22. Qb1 Kb8 23. Rxa7 Rfe8 24. Qf1 Bf5 25. Qa1 b5 26. Ra8+ Kb7 27. Qa7# 1-0
->>>>>>> 68457eb2691f22766aeaf34ca114a91e784ba8d3
+2... Nc6 3. g3 Nf6 4. Nf3 d6 5. d3 Bf5 6. a3 e6 7. h3 Qc7 8. Bg2 Bxd3 9. exd3 Qa5+ 10. Bd2 Qxd2+ 11. Nbxd2 Be7 12. g4 O-O 13. O-O Rfe8 14. Nb1 Rad8 15. Kh2 h6 16. Re1 a6 17. Ra2 Ra8 18. g5 hxg5 19. Kh1 g4 20. hxg4 Nxg4 21. Kg1 Bf6 22. b3 Rad8 23. b4 cxb4 24. Rd2 bxa3 25. Nxa3 Ra8 26. Ree2 Rad8 27. Re4 Nh6 28. Re1 Nf5 29. Qa4 b5 30. cxb5 axb5 31. Qd1 b4 32. Nb1 d5 33. d4 Ra8 34. Rd3 Ra2 35. Bf1 Rb2 36. Re2 Rxe2 37. Bxe2 Ra8 38. Qf1 Ra2 39. Qd1 Nd6 40. Qe1 b3 41. Rxb3 Ne4 42. Nc3 Nxc3 43. Rxc3 Ne7 44. Rc1 Nf5 45. Bd3 Nd6 46. Kh2 Rb2 47. Qe3 Ra2 48. Rc7 Rb2 49. Rc6 Nb7 50. Ba6 Na5 51. Rc1 Kh7 52. Kh1 Kg8 53. Rc8+ Kh7 54. Ng5+ Bxg5 55. Qxg5 Rb1+ 56. Kg2 g6 57. Qh4+ Kg7 58. Qh8# 1-0

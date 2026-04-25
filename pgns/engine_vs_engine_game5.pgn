@@ -1,0 +1,11 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "engine"]
+[Black "engine"]
+[Result "1-0"]
+[FEN "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
+[SetUp "1"]
+
+2. Bc4 Nc6 3. Nf3 Nf6 4. Nc3 Bc5 5. d4 Nxe4 6. Nxe4 Bb4+ 7. c3 Be7 8. Qa4 b5 9. Qxb5 Nxd4 10. cxd4 O-O 11. O-O d5 12. Qc6 Rb8 13. Bxd5 exd5 14. Nc3 Bf5 15. Bf4 Rxb2 16. Ne5 Rxf2 17. Rxf2 Bb4 18. Nb5 Qe7 19. Nf3 Rd8 20. Nxa7 Qe1+ 21. Nxe1 Bxe1 22. Rxe1 h6 23. Bxc7 Rf8 24. Rxf5 Kh7 25. Qxd5 f6 26. Nc6 Ra8 27. Re7 Kh8 28. Qf7 Rg8 29. Qg6 Rf8 30. Rxg7 Rg8 31. Rxg8# 1-0

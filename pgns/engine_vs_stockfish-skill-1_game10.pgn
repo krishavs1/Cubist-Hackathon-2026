@@ -1,13 +1,11 @@
 [Event "?"]
 [Site "?"]
-[Date "2026.04.25"]
-[Round "10"]
+[Date "????.??.??"]
+[Round "?"]
 [White "stockfish-skill-1"]
 [Black "engine"]
-[Result "0-1"]
+[Result "1-0"]
+[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"]
+[SetUp "1"]
 
-<<<<<<< HEAD
-1. e3 Nc6 2. e4 Nd4 3. Ne2 Nxe2 4. Qxe2 e5 5. Qe3 Nf6 6. Nc3 Bb4 7. d4 exd4 8. Qg5 O-O 9. Bd3 dxc3 10. Ke2 Nxe4 11. Qxd8 Rxd8 12. Rd1 Nc5 13. Bb5 a6 14. Bd3 Re8+ 15. Be3 cxb2 16. a3 Rxe3+ 17. fxe3 bxa1=Q 18. Be4 Qxa3 19. Ra1 Qxa1 20. Bd3 Qe1+ 21. Kf3 Qd1+ 22. Kf2 Qe1+ 23. Kf3 Qd1+ 24. Kg3 Be1+ 25. Kf4 Ne6+ 26. Ke4 Nc5+ 27. Kd5 d6 28. g4 Bxg4 29. Kc4 Be6+ 30. Kd4 Qg4+ 31. Be4 Qxe4# 0-1
-=======
-1. e4 Nf6 2. Bd3 Nc6 3. Nc3 e5 4. Nge2 Bc5 5. h3 O-O 6. a3 d6 7. Na4 Bxa3 8. Rxa3 Be6 9. Nac3 a6 10. Ng3 Nd4 11. Ra1 Qd7 12. Be2 Nxe2 13. Qxe2 Qc6 14. O-O Rfd8 15. d3 Qc5 16. Qd1 Re8 17. Bg5 Nd7 18. Be3 Qc6 19. d4 exd4 20. Qxd4 g5 21. Qd1 Ne5 22. Nh5 Rad8 23. Kh1 Qc4 24. Bxg5 Ra8 25. f4 Nc6 26. f5 Bd7 27. Rf2 Ne5 28. Nf6+ Kh8 29. Qh5 Bxf5 30. exf5 Kg7 31. Qh6+ Kh8 32. Qh5 Kg7 33. Nce4 Red8 34. Qh6+ Kh8 35. Qxh7# 1-0
->>>>>>> 68457eb2691f22766aeaf34ca114a91e784ba8d3
+2... Nc6 3. Be2 Nf6 4. Bb5 Nb4 5. d4 Nxe4 6. a3 Nd5 7. O-O exd4 8. Qxd4 Nxf2 9. Qxf2 Bd6 10. Bd2 O-O 11. Bd3 h6 12. Qd4 Bxh2+ 13. Kf2 d6 14. Nc3 Nxc3 15. Bxc3 f6 16. g3 Bxg3+ 17. Kxg3 Be6 18. Rg1 Qd7 19. Rg2 Qc6 20. Rag1 Qxf3+ 21. Kxf3 d5 22. Rxg7+ Kh8 23. Qe3 Bf5 24. Bxf5 Rg8 25. Rxg8+ Rxg8 26. Bxf6+ Rg7 27. Bxg7+ Kg8 28. Bxh6+ Kh8 29. Qc3+ d4 30. Qxd4# 1-0

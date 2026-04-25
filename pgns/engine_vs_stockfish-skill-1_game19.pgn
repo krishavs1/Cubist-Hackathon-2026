@@ -1,15 +1,11 @@
 [Event "?"]
 [Site "?"]
-[Date "2026.04.25"]
-[Round "19"]
+[Date "????.??.??"]
+[Round "?"]
 [White "engine"]
 [Black "stockfish-skill-1"]
-<<<<<<< HEAD
-[Result "1-0"]
-
-1. Nf3 e6 2. Ne5 Nf6 3. Nc3 c5 4. e4 Qc7 5. f4 Be7 6. Bc4 O-O 7. O-O a6 8. d3 Rd8 9. Be3 d6 10. Nf3 d5 11. exd5 exd5 12. Nxd5 Rxd5 13. Bxd5 h6 14. Bc4 Nc6 15. Re1 Bg4 16. Bb3 Na5 17. Ba4 Nd5 18. Qe2 Bd6 19. Rad1 Qe7 20. d4 b5 21. dxc5 Nc3 22. bxc3 Bxf4 23. Bxf4 Qxe2 24. Rxe2 Rc8 25. h3 Bh5 26. g4 bxa4 27. gxh5 Nb7 28. Be3 Nxc5 29. Rg2 Ne6 30. Rd6 Rb8 31. Nd2 Rb2 32. Rxa6 Nc7 33. Rxh6 Rxa2 34. Nf1 a3 35. c4 Ra1 36. Rc6 Ne6 37. h6 Kh7 38. hxg7 Nxg7 39. Bd4 Rc1 40. Rxg7+ Kh8 41. Rc8# 1-0
-=======
 [Result "0-1"]
+[FEN "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
+[SetUp "1"]
 
-1. Nf3 e6 2. Nc3 Nc6 3. e4 Be7 4. Bc4 a6 5. O-O Na5 6. Bd3 d6 7. Nd4 Nf6 8. Qf3 Nd7 9. Re1 Bf6 10. e5 Bxe5 11. Rxe5 dxe5 12. Nde2 O-O 13. Ne4 f5 14. N4c3 Rb8 15. Ng3 e4 16. Ngxe4 fxe4 17. Qxe4 Nf6 18. Qe5 b5 19. Be2 Rf7 20. Bf3 Bd7 21. d4 Nc6 22. Bxc6 Bxc6 23. Qxe6 Be8 24. Qxa6 Re7 25. Bf4 Qxd4 26. Bxc7 Rxc7 27. Qe6+ Rf7 28. Ne2 Qd8 29. Re1 Qd2 30. Rf1 Qd5 31. Qxd5 Nxd5 32. Nd4 Ra8 33. Re1 Bd7 34. h3 Raf8 35. f4 Rxf4 36. Nb3 R4f5 37. Nd4 R5f7 38. h4 Re8 39. Rxe8+ Bxe8 40. h5 Nf6 41. Kf2 b4 42. Ke3 Re7+ 43. Kd3 Rc7 44. h6 Rd7 45. hxg7 h6 46. Ke3 Ng4+ 47. Kd3 Bg6+ 48. Kc4 Nf2 49. Ne6 Bf5 50. Nc5 Rd1 51. Kxb4 Bd7 52. Nxd7 Rd4+ 53. Kc5 Rf4 54. g3 Rf7 55. Ne5 Rf5 56. Kd4 Kxg7 57. Nc4 Kf6 58. Nd6 Re5 59. a3 Ke6 60. Nc4 Rd5+ 61. Ke3 Rf5 62. Kd4 Rg5 63. Ne3 Rxg3 64. Nd5 Rg1 65. Nc7+ Kd6 66. Ne8+ Ke7 67. Nc7 h5 68. Kd5 Kd7 69. Ne6 Re1 70. Nc5+ Kc7 71. Ne6+ Kd7 72. Nc5+ Ke7 73. Kd4 h4 74. Kd5 Re2 75. Kd4 Re1 76. Kd5 Rd1+ 77. Ke5 h3 78. Ne6 h2 79. Nd4 Ng4+ 80. Kf5 Rxd4 81. a4 Rd1 82. Kxg4 Rd2 83. Kf4 h1=Q 84. a5 Qe1 85. a6 Rd4+ 86. Kf3 Qe4+ 87. Kg3 Rd2 88. a7 Rg2+ 89. Kh3 Qg4# 0-1
->>>>>>> 68457eb2691f22766aeaf34ca114a91e784ba8d3
+2. Nc3 Nc6 3. Nf3 Nf6 4. d4 cxd4 5. Nb5 e5 6. Bc4 Qb6 7. Bxf7+ Kxf7 8. Ng5+ Kg8 9. Nxa7 h6 10. Nxc8 Qb5 11. Nf3 Rxc8 12. Bd2 d5 13. exd5 Nb4 14. Nxe5 Rxc2 15. Bxb4 Bxb4+ 16. Qd2 Rxd2 17. Nc4 Qxc4 18. Rg1 Ne4 19. Rh1 Rd1+ 20. Kxd1 Nxf2# 0-1

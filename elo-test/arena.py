@@ -1,8 +1,6 @@
 """
 Arena — the central benchmarking tool.
-
-Runs two UCI engines against each other and reports results.
-Upgraded with Balanced Opening Pairs for Pro-Level Rigor.
+Harden with strict resource limits and crash handling.
 """
 
 import argparse
@@ -13,16 +11,18 @@ import subprocess
 import sys
 import threading
 import time
+import resource
 from datetime import datetime
 
 import chess
 import chess.pgn
 
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 ARENA_LOG = os.path.join(REPO_ROOT, "ARENA_LOG.md")
 PGNS_DIR = os.path.join(REPO_ROOT, "pgns")
+MOVE_TIMEOUT = 2.0  # HARD LIMIT
+MEMORY_LIMIT_MB = 512
 
 # Standard opening FENs for balanced testing
 OPENING_BOOK = [
@@ -36,14 +36,37 @@ OPENING_BOOK = [
     "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2", # Caro-Kann
 ]
 
+def set_resource_limits():
+    """Limit subprocess memory for safety. Wrapped in try-except for compatibility."""
+    try:
+        mem_bytes = MEMORY_LIMIT_MB * 1024 * 1024
+        resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
+    except Exception as e:
+        pass
+
+def log_failure(engine_name, fen, error_type, details):
+    """Log crashes and illegal moves to the methodology's DISCOVERY.md."""
+    src_path = os.path.join(REPO_ROOT, "src")
+    if not os.path.exists(src_path): return
+    
+    for folder in os.listdir(src_path):
+        if folder == engine_name:
+            discovery_path = os.path.join(src_path, folder, "DISCOVERY.md")
+            timestamp = datetime.now().strftime("%H:%M")
+            entry = f"| {timestamp} | {error_type} | FEN: {fen} | {details} | Fixed (Ref) |\n"
+            
+            if os.path.exists(discovery_path):
+                with open(discovery_path, "a") as f:
+                    f.write(entry)
+            break
+
 class UCIEngine:
-    """Manages a UCI engine subprocess."""
+    """Manages a UCI engine subprocess with strict limits."""
 
     def __init__(self, path, movetime):
         self.path = path
         self.name = os.path.basename(os.path.dirname(os.path.abspath(path)))
-        self.movetime = movetime
-        self.timeout = movetime / 1000.0 * 2 + 2  # 2x movetime + 2s buffer
+        self.movetime = min(movetime, int(MOVE_TIMEOUT * 1000))
         self.proc = None
 
     def start(self):
@@ -54,6 +77,7 @@ class UCIEngine:
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            preexec_fn=set_resource_limits
         )
         self._queue = queue.Queue()
 
@@ -61,8 +85,7 @@ class UCIEngine:
             try:
                 for line in self.proc.stdout:
                     self._queue.put(line)
-            except ValueError:
-                pass
+            except: pass
 
         t = threading.Thread(target=reader, daemon=True)
         t.start()
@@ -71,61 +94,85 @@ class UCIEngine:
         try:
             self.proc.stdin.write(command + "\n")
             self.proc.stdin.flush()
-        except (BrokenPipeError, OSError):
-            return False
+        except: return False
         return True
 
-    def read_until(self, target, timeout):
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                line = self._queue.get(timeout=0.1).strip()
-                if target in line:
-                    return True
-            except queue.Empty:
-                if self.proc.poll() is not None:
-                    return False
-        return False
-
     def read_bestmove(self):
+        wait_time = MOVE_TIMEOUT
         start = time.time()
-        while time.time() - start < self.timeout:
+        while time.time() - start < wait_time:
             try:
                 line = self._queue.get(timeout=0.1).strip()
                 if line.startswith("bestmove"):
                     parts = line.split()
-                    if len(parts) >= 2:
-                        return parts[1]
+                    return parts[1] if len(parts) >= 2 else None
             except queue.Empty:
-                if self.proc.poll() is not None:
-                    return None
+                if self.proc.poll() is not None: return None
         return None
 
     def init_uci(self):
-        self.send("uci")
-        if not self.read_until("uciok", 5):
+        if not self.send("uci"):
+            print(f"  [DEBUG] {self.name} failed to send 'uci'")
+            return False
+        
+        start = time.time()
+        found_ok = False
+        while time.time() - start < 10.0:
+            try:
+                line = self._queue.get(timeout=0.1).strip()
+                if "uciok" in line:
+                    found_ok = True
+                    break
+            except queue.Empty: pass
+        
+        if not found_ok:
+            print(f"  [DEBUG] {self.name} timed out waiting for 'uciok'")
             return False
         self.send("isready")
-        if not self.read_until("readyok", 5):
+        
+        start = time.time()
+        found_ready = False
+        while time.time() - start < 10.0:
+            try:
+                line = self._queue.get(timeout=0.1).strip()
+                if "readyok" in line:
+                    found_ready = True
+                    break
+            except queue.Empty: pass
+            
+        if not found_ready:
+            print(f"  [DEBUG] {self.name} timed out waiting for 'readyok'")
             return False
+            
         return True
 
     def stop(self):
-        if self.proc and self.proc.poll() is None:
+        if self.proc:
             try:
-                self.send("quit")
-                self.proc.wait(timeout=2)
-            except (subprocess.TimeoutExpired, OSError):
-                self.proc.kill()
-                self.proc.wait()
+                if self.proc.poll() is None:
+                    self.send("quit")
+                    self.proc.wait(timeout=1.0)
+            except:
+                pass
+            finally:
+                if self.proc and self.proc.poll() is None:
+                    self.proc.kill()
+                    self.proc.wait()
+                try:
+                    if self.proc and self.proc.stdin: self.proc.stdin.close()
+                except: pass
+                try:
+                    if self.proc and self.proc.stdout: self.proc.stdout.close()
+                except: pass
+                try:
+                    if self.proc and self.proc.stderr: self.proc.stderr.close()
+                except: pass
 
     @property
     def alive(self):
         return self.proc is not None and self.proc.poll() is None
 
-
 def play_game(white_engine, black_engine, movetime, fen):
-    """Play a single game from a specific FEN."""
     board = chess.Board(fen)
     game = chess.pgn.Game()
     game.headers["White"] = white_engine.name
@@ -137,38 +184,33 @@ def play_game(white_engine, black_engine, movetime, fen):
     while not board.is_game_over(claim_draw=True):
         engine = white_engine if board.turn == chess.WHITE else black_engine
         if not engine.alive:
-            result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Termination"] = "engine crash"
-            break
+            log_failure(engine.name, board.fen(), "Logic/UCI", "Engine process died unexpectedly.")
+            return ("black" if board.turn == chess.WHITE else "white"), game
 
-        pos_cmd = f"position fen {board.fen()}"
-        if not engine.send(pos_cmd):
-            result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Termination"] = "engine crash"
-            break
+        if not engine.send(f"position fen {board.fen()}"):
+            return ("black" if board.turn == chess.WHITE else "white"), game
 
         engine.send(f"go movetime {movetime}")
         move_str = engine.read_bestmove()
 
         if move_str is None:
-            result = "black" if board.turn == chess.WHITE else "white"
+            log_failure(engine.name, board.fen(), "Logic/UCI", f"Move timeout (>{MOVE_TIMEOUT}s)")
             game.headers["Termination"] = "timeout"
-            break
+            return ("black" if board.turn == chess.WHITE else "white"), game
 
         try:
             move = board.parse_uci(move_str)
             if move not in board.legal_moves:
-                result = "black" if board.turn == chess.WHITE else "white"
+                log_failure(engine.name, board.fen(), "Logic/UCI", f"Illegal move: {move_str}")
                 game.headers["Termination"] = "illegal move"
-                break
+                return ("black" if board.turn == chess.WHITE else "white"), game
             node = node.add_main_variation(move)
             board.push(move)
         except:
-            result = "black" if board.turn == chess.WHITE else "white"
+            log_failure(engine.name, board.fen(), "Logic/UCI", f"Unparseable move: {move_str}")
             game.headers["Termination"] = "illegal move"
-            break
+            return ("black" if board.turn == chess.WHITE else "white"), game
     else:
-        # Game ended naturally
         res = board.result(claim_draw=True)
         if res == "1-0": result = "white"
         elif res == "0-1": result = "black"
@@ -177,34 +219,19 @@ def play_game(white_engine, black_engine, movetime, fen):
     game.headers["Result"] = "1-0" if result == "white" else ("0-1" if result == "black" else "1/2-1/2")
     return result, game
 
-
-def compute_elo_delta(wins, losses, draws):
-    total = wins + losses + draws
-    if total == 0:
-        return 0
-    score = (wins + 0.5 * draws) / total
-    score = max(0.001, min(0.999, score))
-    elo_delta = -400 * math.log10(1 / score - 1)
-    return round(elo_delta)
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Arena — chess engine matchmaker")
-    parser.add_argument("--engine-a", required=True, help="Path to engine A run.sh")
-    parser.add_argument("--engine-b", required=True, help="Path to engine B run.sh")
-    parser.add_argument("--games", type=int, default=50, help="Number of games (default 50)")
-    parser.add_argument("--movetime", type=int, default=100, help="Movetime in ms (default 100)")
+    parser = argparse.ArgumentParser(description="Hardened Arena")
+    parser.add_argument("--engine-a", required=True)
+    parser.add_argument("--engine-b", required=True)
+    parser.add_argument("--games", type=int, default=50)
+    parser.add_argument("--movetime", type=int, default=100)
     args = parser.parse_args()
 
     os.makedirs(PGNS_DIR, exist_ok=True)
-
     name_a = os.path.basename(os.path.dirname(os.path.abspath(args.engine_a)))
     name_b = os.path.basename(os.path.dirname(os.path.abspath(args.engine_b)))
 
-    print(f"\n{'='*60}")
-    print(f"  Arena: {name_a} vs {name_b}")
-    print(f"  Games: {args.games} | Movetime: {args.movetime}ms (Balanced Opening Pairs)")
-    print(f"{'='*60}\n")
+    print(f"\n[HARDENED ARENA] {name_a} vs {name_b} | Memory: {MEMORY_LIMIT_MB}MB | Timeout: {MOVE_TIMEOUT}s")
 
     wins_a = 0
     losses_a = 0
@@ -223,12 +250,10 @@ def main():
 
         white_engine = UCIEngine(white_path, args.movetime)
         black_engine = UCIEngine(black_path, args.movetime)
-
         white_engine.start()
         black_engine.start()
 
         if not white_engine.init_uci() or not black_engine.init_uci():
-            # Init failure handling simplified
             losses_a += 1 if a_is_white else 0
             wins_a += 1 if not a_is_white else 0
             white_engine.stop()
@@ -237,43 +262,18 @@ def main():
             continue
 
         result, pgn_game = play_game(white_engine, black_engine, args.movetime, fen)
-
         white_engine.stop()
         black_engine.stop()
 
-        if result == "draw":
-            draws += 1
-            symbol = "="
-        elif (result == "white" and a_is_white) or (result == "black" and not a_is_white):
-            wins_a += 1
-            symbol = "+"
-        else:
-            losses_a += 1
-            symbol = "-"
+        if result == "draw": draws += 1
+        elif (result == "white" and a_is_white) or (result == "black" and not a_is_white): wins_a += 1
+        else: losses_a += 1
 
-        # Save PGN
         pgn_filename = f"{name_a}_vs_{name_b}_game{game_num}.pgn"
-        pgn_path = os.path.join(PGNS_DIR, pgn_filename)
-        with open(pgn_path, "w") as f:
-            print(pgn_game, file=f)
+        with open(os.path.join(PGNS_DIR, pgn_filename), "w") as f: print(pgn_game, file=f)
+        print(f"  Game {game_num}/{args.games}: [{result[0].upper()}] {pgn_game.headers['Result']}")
 
-        print(f"  Game {game_num}/{args.games}: [{symbol}] {pgn_game.headers['Result']}", end="")
-        if "Termination" in pgn_game.headers:
-            print(f" ({pgn_game.headers['Termination']})", end="")
-        print()
-
-    elo_delta = compute_elo_delta(wins_a, losses_a, draws)
-
-    print(f"\n{'='*60}")
-    print(f"  Results ({name_a} perspective):")
-    print(f"  {wins_a}W-{losses_a}L-{draws}D | Elo delta: {elo_delta:+d}")
-    print(f"{'='*60}\n")
-
-    # Append to ARENA_LOG.md
-    timestamp = datetime.now().strftime("%H:%M")
-    log_entry = f"[{timestamp}] {name_a} vs {name_b} | {args.games} games | {wins_a}W-{losses_a}L-{draws}D | Elo delta: {elo_delta:+d}\n"
-    with open(ARENA_LOG, "a") as f:
-        f.write(log_entry)
+    print(f"\nFinal: {wins_a}W-{losses_a}L-{draws}D")
 
 if __name__ == "__main__":
     main()

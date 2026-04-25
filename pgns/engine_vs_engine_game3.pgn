@@ -1,0 +1,11 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "engine"]
+[Black "engine"]
+[Result "1/2-1/2"]
+[FEN "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
+[SetUp "1"]
+
+2. Bc4 Nf6 3. Qf3 Nc6 4. Nc3 d5 5. exd5 Nxd5 6. Nxd5 e5 7. Ne3 Qxd2+ 8. Bxd2 Nd4 9. Qxf7+ Kd8 10. Qd5+ Kc7 11. Qxe5+ Kc6 12. Qd5+ Kc7 13. Qe5+ Kc6 14. Qd5+ Kc7 1/2-1/2

@@ -111,6 +111,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--games", type=int, default=50)
     parser.add_argument("--movetime", type=int, default=100)
+    parser.add_argument("--report", action="store_true")
     args = parser.parse_args()
 
     sf_path = ensure_stockfish()
@@ -121,10 +122,12 @@ def main():
         print("No engines found in src/. Add your methodology folder with an 'engine/run.sh' to start.")
         return
 
-    print(f"\nEngine Benchmarking (Anchor: Stockfish Skill {STOCKFISH_SKILL_LEVEL} = {STOCKFISH_ANCHOR_ELO} Elo)")
-    print(f"{'Name':<18} {'Elo':<6} {'95% CI':<14}")
-    print("-" * 40)
+    if not args.report:
+        print(f"\nEngine Benchmarking (Anchor: Stockfish Skill {STOCKFISH_SKILL_LEVEL} = {STOCKFISH_ANCHOR_ELO} Elo)")
+        print(f"{'Name':<18} {'Elo':<6} {'95% CI':<14}")
+        print("-" * 40)
 
+    all_results = {}
     for name in methods:
         results_path = os.path.join(SRC_DIR, name, "results.json")
         data = {"name": name, "matchups": {}}
@@ -133,18 +136,30 @@ def main():
                 try: data.update(json.load(f))
                 except: pass
 
-        if "stockfish_anchor" not in data["matchups"]:
-            outcomes = run_matchup(name, methods[name], anchor.name, anchor.run_sh, args.games, args.movetime)
-            if outcomes:
-                data["matchups"]["stockfish_anchor"] = {"wins": outcomes.count(1.0), "losses": outcomes.count(0.0), "draws": outcomes.count(0.5), "total": len(outcomes)}
-        
-        if "stockfish_anchor" in data["matchups"]:
-            m = data["matchups"]["stockfish_anchor"]
-            elo, low, high = fishtest_elo(m["wins"], m["losses"], m["draws"])
-            data.update({"elo": STOCKFISH_ANCHOR_ELO + elo, "elo_ci_lower": STOCKFISH_ANCHOR_ELO + low, "elo_ci_upper": STOCKFISH_ANCHOR_ELO + high, "graded_at": datetime.now().isoformat()})
-            with open(results_path, "w") as f: json.dump(data, f, indent=2)
+        if not args.report:
+            if "stockfish_anchor" not in data["matchups"]:
+                outcomes = run_matchup(name, methods[name], anchor.name, anchor.run_sh, args.games, args.movetime)
+                if outcomes:
+                    data["matchups"]["stockfish_anchor"] = {"wins": outcomes.count(1.0), "losses": outcomes.count(0.0), "draws": outcomes.count(0.5), "total": len(outcomes)}
             
-            print(f"{name:<18} {data.get('elo', 0):.0f} [{data.get('elo_ci_lower', 0):.0f}, {data.get('elo_ci_upper', 0):.0f}]")
+            if "stockfish_anchor" in data["matchups"]:
+                m = data["matchups"]["stockfish_anchor"]
+                elo, low, high = fishtest_elo(m["wins"], m["losses"], m["draws"])
+                data.update({"elo": STOCKFISH_ANCHOR_ELO + elo, "elo_ci_lower": STOCKFISH_ANCHOR_ELO + low, "elo_ci_upper": STOCKFISH_ANCHOR_ELO + high, "graded_at": datetime.now().isoformat()})
+                with open(results_path, "w") as f: json.dump(data, f, indent=2)
+                
+                print(f"{name:<18} {data.get('elo', 0):.0f} [{data.get('elo_ci_lower', 0):.0f}, {data.get('elo_ci_upper', 0):.0f}]")
+        
+        if "elo" in data:
+            all_results[name] = data
+
+    if args.report and all_results:
+        print("\nEngine Performance (Stockfish Calibration)")
+        print(f"{'Name':<18} {'Elo':<6} {'95% CI':<14}")
+        print("-" * 40)
+        sorted_res = sorted(all_results.values(), key=lambda x: x.get('elo', 0), reverse=True)
+        for d in sorted_res:
+            print(f"{d['name']:<18} {d.get('elo', 0):.0f} [{d.get('elo_ci_lower', 0):.0f}, {d.get('elo_ci_upper', 0):.0f}]")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,15 @@
+{
+  "name": "random-bot",
+  "matchups": {
+    "stockfish_anchor": {
+      "wins": 0,
+      "losses": 18,
+      "draws": 2,
+      "total": 20
+    }
+  },
+  "elo": 488.49855961886846,
+  "elo_ci_lower": -599.9826273520769,
+  "elo_ci_upper": 646.7620757225993,
+  "graded_at": "2026-04-24T23:13:19.857279"
+}

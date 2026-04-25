@@ -160,7 +160,7 @@ The **Calibrated Elo** column is \(E_{\text{final}}\) from §4.1. Cross-engine h
 
 ## 5. Arena cross-validation (engine vs engine)
 
-Head-to-head runs use the same **`elo-test/arena.py`** harness as calibration: **10 games** per pair, **80 ms/move**, **512 MB** cap, **2.0 s** hard move ceiling, **8-opening** book, colors alternate. Outcomes are **W–L–D from the row engine’s perspective**. These results are stored in each engine’s `cross_validation` field in `results.json` and **do not change** the Stockfish-derived Elos in §4.
+Head-to-head runs use **`elo-test/arena.py`**: **10 games** per pair, **80 ms/move**, **512 MB** cap, **2.0 s** hard move ceiling, **8-opening** book, colors alternate. Cells are **W–L–D from the row engine’s perspective**. Stored in each engine’s `results.json` → `cross_validation`; **does not** change Stockfish Elos (§4).
 
 ---
 
@@ -168,44 +168,34 @@ Head-to-head runs use the same **`elo-test/arena.py`** harness as calibration: *
 
 | Setting | Value |
 | --- | --- |
-| Games per unordered pair | 10 |
+| Games per pair | 10 |
 | Movetime | 80 ms |
-| Pair not in table | **Strategy1 ↔ SimpleOneShot_bot** was not run in the saved `results.json` snapshot (cells **—**). |
+| Engines | **Strategy1**, **OneShotOpus**, **test-driven-development**, **chess-ttt** |
 
 ---
 
-### 5.2 Cross-validation matrix (four strategies)
+### 5.2 Cross-validation matrix (four engines)
 
-Rows = engine A, columns = engine B. Cell = **A’s** wins–losses–draws vs B. Diagonal **—**.
-
-|  | **Strategy1** | **SimpleOneShot_bot** | **test-driven-development** | **chess-ttt** |
+|  | **Strategy1** | **OneShotOpus** | **test-driven-development** | **chess-ttt** |
 | --- | :---: | :---: | :---: | :---: |
-| **Strategy1** | — | — | 10–0–0 | 10–0–0 |
-| **SimpleOneShot_bot** | — | — | 9–1–0 | 9–0–1 |
-| **test-driven-development** | 0–10–0 | 1–9–0 | — | 5–0–5 |
-| **chess-ttt** | 0–10–0 | 0–9–1 | 0–5–5 | — |
+| **Strategy1** | — | 4–0–6 | 10–0–0 | 10–0–0 |
+| **OneShotOpus** | 0–4–6 | — | 8–0–2 | 10–0–0 |
+| **test-driven-development** | 0–10–0 | 0–8–2 | — | 5–0–5 |
+| **chess-ttt** | 0–10–0 | 0–10–0 | 0–5–5 | — |
 
 ---
 
-### 5.3 Stockfish Elo vs net spread in §5.2
+### 5.3 Stockfish Elo vs net W−L in §5.2
 
-Net = (wins − losses) summed over the **three** opponents each engine played in §5.2 (draws ignored in net).
+Net = Σ (wins − losses) over the **three** opponents in §5.2 (draws omitted).
 
-| Engine | Calibrated Elo (§4) | Net W−L in §5.2 |
+| Engine | Calibrated Elo (Stockfish, §4) | Net W−L (§5.2) |
 | --- | ---: | ---: |
-| **Strategy1** | 1447 | +20 |
-| **SimpleOneShot_bot** | 1195 | +17 |
+| **Strategy1** | 1447 | +24 |
+| **OneShotOpus** | 1212 | +14 |
 | **test-driven-development** | 863 | −13 |
-| **chess-ttt** | 779 | −24 |
+| **chess-ttt** | 779 | −25 |
 
----
-
-### 5.4 Extra pair in `results.json` (outside the four-way block)
-
-| Row | Column | W–L–D (row) | Notes |
-| --- | --- | :---: | --- |
-| Strategy1 | OneShotOpus | 4–0–6 | Separate engine; kept for completeness. |
-| test-driven-development | OneShotOpus | 0–8–2 | |
-| chess-ttt | OneShotOpus | 0–10–0 | |
+*OneShotOpus calibrated Elo from `strategies/OneShotOpus/results.json` (same `elo-test/` protocol as §4).*
 
 ---

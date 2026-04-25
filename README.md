@@ -46,3 +46,115 @@ graph TD
     Win -->|Logic Translation| Opt
     Opt --> Final
 
+## 2. The Four Prompting Methodologies
+To eliminate bias and establish a proper control, we isolated our development into four distinct tracks. Each track was constrained to a single AI prompting philosophy.
+
+### 1. The Zero-Shot Megaprompt
+Instead of iterative coding, this strategy treated the AI as a high-level system architect that required maximum upfront context. Before generating a single line of code, we parallelized our entire five-person team to construct the ultimate master prompt. Each team member engaged independently with varying foundation AI models (e.g., Claude, GPT-4, Gemini) to brainstorm optimal chess engine architectures, search optimizations, and heuristic logic. By using different models, we ensured a diversity of algorithmic "thought." We then held a design review to cross-examine the outputs, extracting the most mathematically sound and performant ideas from each model while discarding redundancies.
+
+We merged these optimal components into a single, cohesive blueprint. This resulted in approximately 53 KB of exhaustive input planning documentation, including files like Strategy1.md, DARWINIAN_AI.md, and custom heuristic guidelines. Finally, we fed this meticulously synthesized master document into a fresh Claude instance as a massive, zero-shot directive to see if comprehensive, human-curated synthesis could outperform iterative prompting.
+
+### 2. Strict Test-Driven Development
+This track focused entirely on code stability and logical correctness over strategic flair. The developer forced the AI into a strict "red-green-refactor" loop. The AI was explicitly forbidden from writing engine logic until it had first generated failing unittest blocks for piece movement, search bounds, and standard UCI protocol behavior.
+
+### 3. The Dimensional Scaler
+Our most experimental track asked a simple question: Can an AI generalize a search architecture across entirely different state spaces? The scaler was built in a three-stage lineage. First, the AI was prompted to build a perfectly tested Tic-Tac-Toe (TTT) engine. Next, we prompted it to scale that exact architecture to an 8x8 Checkers engine (handling forced captures and multi-jumps). Finally, it scaled the logic to Chess via a python-chess wrapper.
+
+### 4. The Baseline MVP
+To quantitatively measure how much our advanced prompting methodologies actually improved performance, we needed a baseline. For this track, the developer used a simple, low-effort, one-shot prompt: asking the AI to build a Minimum Viable Product (MVP) chess engine that could speak UCI. This served as our control variable—representing what a standard hackathon team might submit if they simply asked an LLM to "write a chess engine."
+
+## 3. The resulting engines
+
+### 1. The Zero-Shot Megaprompt
+Treat chess as a two-layer problem: a shared, heavy search stack (PVS, deepening, TT, null-move, LMR, killers, history, quiescence) that maximizes depth per second, and a swappable evaluator (“personality”) that scores positions with different blends of material, piece–square structure, king safety, and style. Playing strength comes from search depth plus whichever eval profile is active, not from hand-tuned move rules at the UCI layer.
+
+### 2. Strict Test-Driven Development
+Prioritize simple, testable search: negamax alpha-beta over legal moves with MVV-LVA capture ordering and a modest fixed depth, backed by an evaluator tuned so tests and UCI contracts stay honest. The strategy is shallow but consistent lookahead—prefer positions the static eval likes after a few plies, without investing in transpositions, quiescence, or aggressive pruning.
+
+### 3. The Dimensional Scaler
+Keep one game-agnostic alpha-beta core and the same iterative-deepening shell used from tic-tac-toe through checkers; for chess, only swap in a python-chess game wrapper and a richer static eval (material, PSTs, mobility, king tapering, small structure terms). The strategy is “same search recipe, new rules and eval”—reuse of architecture over chess-specific search tricks.
+
+### 4. The Baseline MVP
+Pack a full modern recipe into a single pipeline: iterative deepening with aspiration windows, TT, quiescence, null-move, LMR, check extensions, killers, history, and tapered PeSTO-style scoring, all driving one negamax-style search. The strategy is maximum conventional engine technique per clock tick under one coherent implementation, with time limits handled inside the same UCI-facing program.
+
+## 4. Elo vs Stockfish (anchor calibration)
+
+Each prototype was scored against **three fixed Stockfish opponents**: **skill 1, 3, and 5**, mapped in our harness to nominal anchor ratings **1000**, **1200**, and **1500** Elo. Match settings were identical for every engine: **80 ms per move**, **12 games per skill level** (36 calibration games per engine), eight balanced opening FENs, and alternating colors. The numbers below come from each engine’s `results.json` and the same pipeline as `elo-test/grade.py`.
+
+---
+
+### 4.1 Equations (how anchor Elo is turned into one number)
+
+For one anchor with \(W\) wins, \(L\) losses, and \(D\) draws, let \(n = W+L+D\) and define the **empirical score**
+
+\[
+s = \frac{W + \tfrac{1}{2}D}{n}.
+\]
+
+The implementation clamps \(s\) into \((10^{-4},\,1-10^{-4})\) so \(\log\) arguments stay finite.
+
+**Trinomial variance** of the score (treating each game as W / D / L):
+
+\[
+\operatorname{Var}(s)
+= \frac{W}{n}(1-\mu)^2 + \frac{D}{n}\Bigl(\tfrac{1}{2}-\mu\Bigr)^2 + \frac{L}{n}(0-\mu)^2,
+\qquad \mu = s,
+\]
+
+with **standard error of the mean score**
+
+\[
+\mathrm{SE}(s) = \sqrt{\frac{\operatorname{Var}(s)}{n}}.
+\]
+
+The **Elo offset** of the candidate relative to the anchor implied by \(s\) is the logistic / Bradley–Terry form used in code:
+
+\[
+\Delta \;=\; -400\,\log_{10}\!\Bigl(\frac{1}{s}-1\Bigr)
+\;=\; 400\,\log_{10}\!\Bigl(\frac{s}{1-s}\Bigr).
+\]
+
+The **single-anchor estimate** of the candidate’s absolute rating is
+
+\[
+\hat{E} \;=\; E_{\text{anchor}} + \Delta
+\;=\; E_{\text{anchor}} - 400\,\log_{10}\!\Bigl(\frac{1}{s}-1\Bigr).
+\]
+
+**Delta method** for the standard error in Elo space:
+
+\[
+\frac{\mathrm{d}\Delta}{\mathrm{d}s}
+= \frac{400}{\ln 10 \cdot s(1-s)},
+\qquad
+\mathrm{SE}(\hat{E}) = \mathrm{SE}(s)\cdot \Bigl|\frac{\mathrm{d}\Delta}{\mathrm{d}s}\Bigr|.
+\]
+
+With three anchors \(i=1,2,3\), estimates \(\hat{E}_i\) and \(\mathrm{SE}_i\) are combined by **inverse-variance weighting**:
+
+\[
+w_i = \frac{1}{\mathrm{SE}_i^2},
+\qquad
+E_{\text{final}} = \frac{\sum_i w_i \hat{E}_i}{\sum_i w_i},
+\qquad
+\mathrm{SE}_{\text{final}} = \frac{1}{\sqrt{\sum_i w_i}}.
+\]
+
+**95% confidence interval:** \(E_{\text{final}} \pm 1.96\,\mathrm{SE}_{\text{final}}\).
+
+---
+
+### 4.2 Stockfish anchor results → combined Elo
+
+Each cell is **W–L–D** over **12 games** from the **engine’s** perspective (wins / losses / draws against that Stockfish skill level).
+
+| Engine | Calibrated Elo | 95% CI | vs Stockfish skill **1** (~1000) | vs Stockfish skill **3** (~1200) | vs Stockfish skill **5** (~1500) |
+| --- | ---: | --- | :---: | :---: | :---: |
+| **Strategy1** | **1447** | [1319, 1576] | 11–1–0 | 10–2–0 | 3–5–4 |
+| **SimpleOneShot_bot** | **1195** | [1087, 1303] | 9–2–1 | 4–6–2 | 0–8–4 |
+| **test-driven-development** | **863** | [737, 990] | 2–6–4 | 0–10–2 | 0–11–1 |
+| **chess-ttt** | **779** | [615, 943] | 1–8–3 | 0–12–0 | 0–11–1 |
+
+The **Calibrated Elo** column is \(E_{\text{final}}\) from §4.1. Cross-engine head-to-head play does **not** enter this number; it only comes from games vs Stockfish anchors.
+
+

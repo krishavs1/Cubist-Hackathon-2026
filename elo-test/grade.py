@@ -21,6 +21,13 @@ ENGINE_ROOTS = [
     SRC_DIR,
     os.path.join(REPO_ROOT, "ttt-iteration_bot"),
 ]
+# Engines that live at the repo root and already have their own
+# engine/run.sh (i.e. the folder itself IS the engine, not a container of
+# engines). These get registered under the folder's basename.
+DIRECT_ENGINES = [
+    os.path.join(REPO_ROOT, "SimpleOneShot_bot"),
+    os.path.join(REPO_ROOT, "Strategy1"),
+]
 LEADERBOARD_PATH = os.path.join(REPO_ROOT, "LEADERBOARD.md")
 STOCKFISH_DIR = os.path.join(SCRIPT_DIR, "stockfish_bin")
 STOCKFISH_PATH = os.path.join(STOCKFISH_DIR, "stockfish")
@@ -78,10 +85,17 @@ class StockfishWrapper:
         os.chmod(self.run_sh, 0o755)
 
 def discover_methodologies():
-    """Scan every directory in ENGINE_ROOTS for <root>/<name>/engine/run.sh.
+    """Scan ENGINE_ROOTS (containers) + DIRECT_ENGINES (single engines).
 
-    If the same engine name is present in multiple roots, the first root
-    wins (SRC_DIR is listed first and remains the primary location).
+    ENGINE_ROOTS are directories that contain multiple engine folders; we
+    look for ``<root>/<name>/engine/run.sh`` and register the engine
+    under ``<name>``.
+
+    DIRECT_ENGINES are directories that are themselves an engine; we look
+    for ``<dir>/engine/run.sh`` and register under ``basename(<dir>)``.
+
+    First hit wins, so SRC_DIR / ttt-iteration_bot take precedence over
+    DIRECT_ENGINES if a name collision ever happens.
     """
     methods = {}
     for root in ENGINE_ROOTS:
@@ -92,6 +106,14 @@ def discover_methodologies():
                 continue
             run_sh = os.path.join(root, name, "engine", "run.sh")
             if os.path.exists(run_sh) and name not in methods:
+                methods[name] = run_sh
+    for engine_dir in DIRECT_ENGINES:
+        if not os.path.exists(engine_dir):
+            continue
+        run_sh = os.path.join(engine_dir, "engine", "run.sh")
+        if os.path.exists(run_sh):
+            name = os.path.basename(engine_dir.rstrip(os.sep))
+            if name not in methods:
                 methods[name] = run_sh
     return methods
 
@@ -146,15 +168,31 @@ def main():
     parser.add_argument("--movetime", type=int, default=100)
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--cross-validate", action="store_true", help="Test engines against each other")
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="Comma-separated list of engine names to restrict the run to. "
+             "If omitted, every discovered engine participates.",
+    )
     args = parser.parse_args()
 
     sf_path = ensure_stockfish()
     methods = discover_methodologies()
+
+    if args.only:
+        wanted = {n.strip() for n in args.only.split(",") if n.strip()}
+        unknown = wanted - set(methods.keys())
+        if unknown:
+            print(f"Warning: --only listed unknown engines: {sorted(unknown)}")
+            print(f"Discovered engines: {sorted(methods.keys())}")
+        methods = {n: p for n, p in methods.items() if n in wanted}
+
     method_names = list(methods.keys())
-    
+
     if not methods:
         print("No engines found in src/. Add your methodology folder with an 'engine/run.sh' to start.")
         return
+    print(f"Engines selected for this run: {method_names}")
 
     # Load all existing data
     all_data = {}
@@ -204,6 +242,13 @@ def main():
                                 "total": len(outcomes),
                                 "base_elo": base_elo
                             }
+                            # Persist immediately so an interrupted run never
+                            # loses more than the games for a single anchor.
+                            # We only have partial anchor data here, so we
+                            # skip the Elo computation until all anchors
+                            # have been collected (or re-done on resume).
+                            with open(results_path_for(methods[name]), "w") as f:
+                                json.dump(all_data[name], f, indent=2)
 
                 # Recompute Absolute Elo
                 if all_data[name]["anchors"]:

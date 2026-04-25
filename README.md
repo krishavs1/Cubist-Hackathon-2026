@@ -203,3 +203,93 @@ Net = Σ (wins − losses) over the **three** opponents in §5.2 (draws omitted)
 *OneShotOpus calibrated Elo from `strategies/OneShotOpus/results.json` (same `elo-test/` protocol as §4).*
 
 ---
+
+## 6. Compute Cost & Efficiency Analysis
+
+Elo alone doesn't tell the full story. A methodology that produces a 1400-Elo engine in one prompt is fundamentally different from one that reaches the same rating after 50 iterations and $10 in API costs. We tracked three compute dimensions for each strategy: cost to build the MVP, cost to fully optimize it, and the projected Elo ceiling of the optimized result.
+
+### 6.1 MVP Build Cost
+
+| Engine | Total Tokens | API Cost | Notes |
+|---|---|---|---|
+| chess-ttt | ~13,600 | ~$0.07 | Chess step only; game-agnostic search reused from TTT |
+| TDD | ~30,000 | ~$0.13 | Full TDD loop: tests, implementation, UCI conformance |
+| OneShotOpus | ~12,260 | ~$0.63 | Fewest tokens, but claude-opus-4-7 pricing ($75/M output) |
+| Strategy1 | ~205,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
+
+chess-ttt is the cheapest in absolute dollar terms because it reuses a verified search core and only replaces the game-specific layer. OneShotOpus has the lowest token count but the second-highest dollar cost — claude-opus-4-7 is expensive per token. Strategy1 consumes the most tokens by a wide margin due to its research-heavy upfront investment and multi-model prompting across the team.
+
+### 6.2 Expected Optimization Cost
+
+| Engine | Est. Tokens to Optimize | Est. API Cost | What's Left to Do |
+|---|---|---|---|
+| TDD | ~35,000 | ~$0.13 | Quiescence search, TT, LMR, null-move, PST tuning |
+| chess-ttt | ~38,000 | ~$0.15 | Same features, but requires forking the shared search core |
+| Strategy1 | ~76,000 | ~$0.30 | Reflexion v2/v3, endgame eval, tapered PST variants, time tuning |
+| OneShotOpus | ~varies | ~$1.80–3.00 | Texel tuning, NNUE — expensive on Opus; ~$0.20 if delegated to Haiku |
+
+TDD and chess-ttt are the cheapest to optimize because their search stacks have clear, well-understood gaps (no TT, no quiescence). Strategy1's optimization loop is more expensive because it runs internal tournaments to validate each change. OneShotOpus is the most expensive to optimize on-methodology because its remaining improvements (learned evaluation) are inherently token-heavy on a frontier model.
+
+### 6.3 Projected Elo Ceiling
+
+| Engine | Current Elo | Projected Ceiling | Gap to Close |
+|---|---|---|---|
+| Strategy1 | 1447 | ~1,500–1,700 | +50–250 |
+| OneShotOpus | 1212 | ~1,500–1,700 | +290–490 |
+| TDD | 863 | ~1,100–1,300 | +240–440 |
+| chess-ttt | 779 | ~1,000–1,250 | +220–470 |
+
+Strategy1's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed — a compiled Rust rewrite would push the ceiling significantly higher.
+
+---
+
+## 7. The Scoring Formula & Why We Chose Megaprompt
+
+Raw Elo is only one axis. We designed a **Methodology Evaluation Score (MES)** that combines all six factors into a single number, weighted to reflect what actually matters for deciding which strategy to invest in.
+
+### 7.1 The Formula
+
+$$\text{MES} = 0.25 F_1 + 0.20 F_2 + 0.20 F_3 + 0.15 F_4 + 0.10 F_5 + 0.10 F_6$$
+
+Each factor is normalized to [0, 1] using min-max scaling across the four engines. For performance factors (F1, F2, F5, F6), higher is better. For cost factors (F3, F4), lower cost maps to a higher score.
+
+| Factor | Description | Weight | Direction |
+|---|---|---|---|
+| F1 | Calibrated Elo vs Stockfish anchors | **25%** | Higher = better |
+| F2 | Cross-validation score vs other strategies | **20%** | Higher = better |
+| F3 | API cost to build the MVP | **20%** | Lower = better |
+| F4 | Expected API cost to fully optimize | **15%** | Lower = better |
+| F5 | Projected Elo ceiling of optimized strategy | **10%** | Higher = better |
+| F6 | Methodology quality score (hackathon rubric) | **10%** | Higher = better |
+
+The first four factors carry 80% of total weight because engine strength and compute efficiency are the primary axes that determine which methodology is worth scaling. F5 and F6 are meaningful tie-breakers but are more speculative — F5 is a projection, F6 is qualitative.
+
+**F6 — Methodology Rubric Score** is assessed on the four judging criteria (Chess Engine Quality, AI Usage, Process & Parallelization, Engineering Quality), scored 0–10 on each:
+
+| Engine | Chess Quality | AI Usage | Process | Engineering | Total /40 |
+|---|---|---|---|---|---|
+| Strategy1 | 10 | 9 | 9 | 8 | **36** |
+| TDD | 5 | 9 | 6 | 10 | **30** |
+| chess-ttt | 4 | 8 | 7 | 9 | **28** |
+| OneShotOpus | 8 | 5 | 3 | 5 | **21** |
+
+### 7.2 Final Scores
+
+| Engine | F1 | F2 | F3 | F4 | F5 | F6 | **MES** |
+|---|---|---|---|---|---|---|---|
+| **Strategy1** | 1.000 | 1.000 | 0.000 | 0.927 | 1.000 | 1.000 | **0.789** |
+| **OneShotOpus** | 0.648 | 0.796 | 0.276 | 0.000 | 1.000 | 0.583 | **0.534** |
+| **TDD** | 0.126 | 0.245 | 0.924 | 1.000 | 0.158 | 0.833 | **0.515** |
+| **chess-ttt** | 0.000 | 0.000 | 1.000 | 0.993 | 0.000 | 0.778 | **0.427** |
+
+### 7.3 Why Strategy1 Won
+
+**Strategy1 scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its 205K-token, multi-model research pipeline was the most expensive to construct. That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
+
+The second and third place finishers — OneShotOpus (0.534) and TDD (0.515) — are nearly tied, revealing an interesting tension: OneShotOpus wins on engine quality but is penalized heavily on F4 (Opus optimization costs ~$2.40 per pass); TDD wins on compute efficiency but is limited by its weaker engine. Neither dominates the other.
+
+chess-ttt scores lowest because its abstraction — one game-agnostic search core across three games — trades chess-specific strength for reusability. The penalty shows up directly in F1 and F2.
+
+The full derivation, raw data, and a sensitivity analysis are in `strategy_evaluation/`.
+
+---

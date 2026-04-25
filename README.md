@@ -368,7 +368,6 @@ The result is one strategy with three people's work compounding at once. The per
 | **vs skill 1 (~1000)** | **20–0–0** (W–L–D) |
 | **vs skill 3 (~1200)** | **18–1–1** |
 | **vs skill 5 (~1500)** | **15–3–2** |
-| **Where it’s stored** | `strategies/Strategy1/engines/rust/results.json` |
 
 This is the number we cite as **megaprompt’s final** calibrated strength in this repo: native speed lets the **same** search-and-eval design (PVS, deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered scoring, Reflexion-style patches) use the clock budget for **more depth** than the Python MVE. The **Strategy1** row in §4.3 is still the **Python** run (**80 ms**, **12 games per anchor**); it and **1740** differ by **implementation**, **movetime**, and **games per anchor**, not by the anchor ladder itself.
 

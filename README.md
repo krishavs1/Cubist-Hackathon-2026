@@ -88,7 +88,7 @@ Prioritize simple, testable search: negamax alpha-beta over legal moves with MVV
 Keep one game-agnostic alpha-beta core and the same iterative-deepening shell used from tic-tac-toe through checkers; for chess, only swap in a python-chess game wrapper and a richer static eval (material, PSTs, mobility, king tapering, small structure terms). The strategy is “same search recipe, new rules and eval”—reuse of architecture over chess-specific search tricks.
 
 ### 4. The Baseline MVP
-Pack a full modern recipe into a single pipeline: iterative deepening with aspiration windows, TT, quiescence, null-move, LMR, check extensions, killers, history, and tapered PeSTO-style scoring, all driving one negamax-style search. The strategy is maximum conventional engine technique per clock tick under one coherent implementation, with time limits handled inside the same UCI-facing program.
+Packed a full engine with iterative deepening with aspiration windows, TT, quiescence, null-move, LMR, check extensions, killers, history, and tapered PeSTO-style scoring, all driving one negamax-style search. The strategy is maximum conventional engine technique per clock tick under one coherent implementation, with time limits handled inside the same UCI-facing program.
 
 ## 4. Elo vs Stockfish (anchor calibration)
 
@@ -403,10 +403,10 @@ The compounding effect: the single-prompt Python baseline reached 1014 Elo. The 
 
 **Chess Quality:** The 668-Elo gap between first and last came down to feedback loops, not model capability. Strategy1’s Darwinian selection and Reflexion cycles produced evaluators calibrated to actual game outcomes. OneShotOpus showed a capable one-shot baseline; TDD and chess-ttt were limited by missing search features (no quiescence, no TT) and architectural abstraction costs respectively.
 
-**AI Usage:** How you use the model matters more than which model you use. Strategy1’s tournament-select-then-diagnose loop is a genuine human-AI collaboration. TDD’s test-gate is the most rigorous — every AI output was immediately falsifiable. OneShotOpus, despite using the strongest model, has the weakest AI usage score because there is no evaluation or iteration.
+**AI Usage:** Strategy1’s tournament-select-then-diagnose loop is a genuine human-AI collaboration. TDD’s test-gate is the most rigorous — every AI output was immediately falsifiable. OneShotOpus, despite using the strongest model, has the weakest AI usage score because there is no evaluation or iteration.
 
 **Process:** Parallel workstreams compounded where sequential ones plateaued. chess-ttt’s sequential verified stages were principled but a single bad step would have cost the chess endpoint. TDD’s loop was tight but unbranched.
 
-**Engineering:** Tests catch correctness bugs; tournaments catch quality gaps. TDD and chess-ttt had the deepest test coverage. Strategy1 traded unit tests for tournament-validated evaluators — a valid tradeoff, but one that makes search-level bugs harder to detect.
+**Engineering:** Tests catch correctness bugs; tournaments catch quality gaps. TDD and chess-ttt had the deepest test coverage. Strategy1 traded unit tests for tournament-validated evaluators: a valid tradeoff, but one that makes search-level bugs harder to detect.
 
-**Overarching lesson:** Structure beats raw model capability. OneShotOpus used the most expensive model and finished second-to-last. Strategy1 used the same API with deliberate parallelism, selection, and feedback — and finished 255 Elo points higher at a fraction of the optimization cost.
+**Overarching lesson:** Structure beats raw model capability. OneShotOpus used the most expensive model and finished second-to-last. Strategy1 used the same API with deliberate parallelism, selection, and feedback and finished 255 Elo points higher at a fraction of the optimization cost.

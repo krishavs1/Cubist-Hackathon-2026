@@ -105,7 +105,7 @@ Our evaluation framework adopts the **fishtest methodology**, the official Stock
 - **Delta method** for error propagation from score-space to Elo-space
 - **Inverse-variance weighting** to combine estimates across multiple anchor strength levels
 
-Using an established, externally-validated methodology ensures our ratings are comparable to published benchmarks and defensible against scrutiny.
+Using an established, externally-validated methodology ensures our ratings are comparable to published benchmarks and defensible against scrutiny. Anyone can rerun `elo-test/grade.py` on the checked-in engines and regenerate the same `results.json` shape (same anchors, same trinomial combination), which is how we kept evaluation **auditable** rather than narrative-only.
 
 ---
 
@@ -305,7 +305,7 @@ The first four factors carry 80% of total weight because engine strength and com
 
 ### 7.3 Why Strategy1 Won
 
-**Strategy1 scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its 205K-token, multi-model research pipeline was the most expensive to construct. That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
+**Strategy1 scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its ~105K-token, multi-model research pipeline was the most expensive to construct (see §6.1). That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
 
 The second and third place finishers — OneShotOpus (0.534) and TDD (0.515) — are nearly tied, revealing an interesting tension: OneShotOpus wins on engine quality but is penalized heavily on F4 (Opus optimization costs ~$2.40 per pass); TDD wins on compute efficiency but is limited by its weaker engine. Neither dominates the other.
 
@@ -317,7 +317,7 @@ The full derivation, raw data, and a sensitivity analysis are in `strategy_evalu
 
 ## 8. Optimizing the megaprompt
 
-Once the tournament picked megaprompt as the strongest strategy, we kept working on it. The two-layer design (one fixed search, one swappable personality) made it easy to split up: different people could work on different layers at the same time without stepping on each other. Three tracks ran at once.
+Once the tournament picked megaprompt as the strongest strategy, we kept working on it. The two-layer design (one fixed search, one swappable personality) made it easy to split up: different people could work on different layers at the same time without stepping on each other. Three tracks ran at once, each with a **single owning thread** (Reflexion loop, Rust port, cross-strategy audit) so parallelization stayed merge-safe and reviewable in Git.
 
 ```mermaid
 flowchart LR

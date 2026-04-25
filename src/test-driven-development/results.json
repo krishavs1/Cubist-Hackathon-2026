@@ -35,6 +35,12 @@
       "losses": 9,
       "draws": 0,
       "total": 10
+    },
+    "megaprompt": {
+      "wins": 3,
+      "losses": 1,
+      "draws": 6,
+      "total": 10
     }
   },
   "elo": 863.3869567262932,

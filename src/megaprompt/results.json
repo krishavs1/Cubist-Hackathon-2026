@@ -23,7 +23,26 @@
       "base_elo": 1500.0
     }
   },
-  "cross_validation": {},
+  "cross_validation": {
+    "test-driven-development": {
+      "wins": 1,
+      "losses": 3,
+      "draws": 6,
+      "total": 10
+    },
+    "chess-ttt": {
+      "wins": 1,
+      "losses": 5,
+      "draws": 4,
+      "total": 10
+    },
+    "SimpleOneShot_bot": {
+      "wins": 0,
+      "losses": 9,
+      "draws": 1,
+      "total": 10
+    }
+  },
   "elo": 694.0205423661031,
   "elo_ci_lower": 524.2107246535586,
   "elo_ci_upper": 863.8303600786476,

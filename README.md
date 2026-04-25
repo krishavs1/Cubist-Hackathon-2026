@@ -294,6 +294,26 @@ The full derivation, raw data, and a sensitivity analysis are in `strategy_evalu
 
 ---
 
+## 8. Optimizing the megaprompt
+
+Once the tournament picked megaprompt as the strongest strategy, we kept working on it. The two-layer design (one fixed search, one swappable personality) made it easy to split up: different people could work on different layers at the same time without stepping on each other. Three tracks ran at once.
+
+### 8.1 Track 1: smarter personality (Workstream E)
+
+One teammate ran the Reflexion loop. They took the 10 games `positional_grinder` had lost in the arena, fed the PGN text of those games back to Claude, and asked "what went wrong?". Claude found four patterns in the losses: no piece development, no castling, knights wandering to the rim, and queens coming out too early. It then wrote `reflexion_v1`, which is `positional_grinder` plus small bonuses and penalties for exactly those four patterns. A verification tournament confirmed the new version beat the old one 1-0 head to head, so `reflexion_v1` became the shipped personality.
+
+### 8.2 Track 2: port to Rust for speed
+
+In parallel, another teammate rewrote the full engine in Rust, keeping the same logic and the same `reflexion_v1` evaluator. Python is easy to write but slow. The Rust version runs the identical search around 200 times faster, which means it can look several plies deeper in the same amount of time. Deeper search on the same evaluator is free strength. A head to head between the Rust build and the Python build confirmed the Rust one wins at the same time control, and §9 below shows the full calibrated Elo.
+
+### 8.3 Track 3: borrow the best parts from the other strategies
+
+While those two tracks ran, we looked at what made the rival engines effective in their own games and folded the best parts back in. The Baseline MVP strategy (OneShotOpus) used tapered PeSTO evaluation tables, which we already had in our `pesto` personality and kept as part of `reflexion_v1`. The `shakmaty` Rust chess library had already been tested by another teammate on a separate engine, so the port used a known-working version from day one instead of fighting library issues. The strict test style from TDD carried over into the Rust test harness, so the new build could be trusted on the first run.
+
+The result is one strategy with three people's work compounding at once. The personality keeps getting smarter through Reflexion, the search keeps getting faster through Rust, and the building blocks keep getting better by borrowing across strategies. None of these tracks would have worked without the two-layer architecture holding a clean boundary between search and evaluator.
+
+---
+
 ## 9. Final performance of the megaprompt
 
 The **megaprompt** track (Strategy 1) is best summarized by its **final, calibrated playing strength** on the same Stockfish anchor ladder used elsewhere in this document: skills **1 / 3 / 5** at nominal **1000 / 1200 / 1500** Elo, combined with inverse-variance weighting and the trinomial error model in `elo-test/grade.py` (see §4.1).

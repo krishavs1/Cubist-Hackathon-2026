@@ -45,6 +45,7 @@ graph TD
     Arena -->|Statistical Cross-Validation| Win
     Win -->|Logic Translation| Opt
     Opt --> Final
+```
 
 ## 2. The Four Prompting Methodologies
 To eliminate bias and establish a proper control, we isolated our development into four distinct tracks. Each track was constrained to a single AI prompting philosophy.

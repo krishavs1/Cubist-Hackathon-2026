@@ -1,7 +1,7 @@
 #!/bin/bash
 # Launch the chess-ttt UCI engine. The grader (elo-test/grade.py) discovers
-# this file by globbing src/<name>/engine/run.sh and invokes it as a UCI
-# subprocess.
+# this file by scanning its ENGINE_ROOTS (src/ and ttt-iteration_bot/) for
+# <name>/engine/run.sh, and invokes it as a UCI subprocess.
 #
 # We run from the chess-ttt project root so the `src` package import works,
 # and prefer the repo's .venv interpreter if present (the system python3 on

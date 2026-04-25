@@ -26,7 +26,7 @@ TOKEN_USAGE.md
 
 ## Running
 
-From `src/tic-tac-toe/`:
+From `ttt-iteration_bot/tic-tac-toe/`:
 
 ```bash
 # Play as X (human moves first)

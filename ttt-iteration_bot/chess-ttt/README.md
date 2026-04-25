@@ -2,7 +2,7 @@
 
 Third step in the game-agnostic-search progression:
 
-    src/tic-tac-toe/  →  src/checkers/  →  src/chess-ttt/
+    ttt-iteration_bot/tic-tac-toe/  →  ttt-iteration_bot/checkers/  →  ttt-iteration_bot/chess-ttt/
 
 Each step **reuses more of the engine** than the last, by design. The
 previous README for this folder talked about bridging from Tic-Tac-Toe
@@ -16,17 +16,17 @@ and the `game.py` interface contract.
 Two files are now **byte-identical** across projects, up from one:
 
 ```
-$ md5 src/tic-tac-toe/src/search.py \
-      src/checkers/src/search.py \
-      src/chess-ttt/src/search.py
-MD5 (src/tic-tac-toe/src/search.py) = 0abb839293a3f53c71be713a59e9cacb
-MD5 (src/checkers/src/search.py)    = 0abb839293a3f53c71be713a59e9cacb
-MD5 (src/chess-ttt/src/search.py)   = 0abb839293a3f53c71be713a59e9cacb
+$ md5 ttt-iteration_bot/tic-tac-toe/src/search.py \
+      ttt-iteration_bot/checkers/src/search.py \
+      ttt-iteration_bot/chess-ttt/src/search.py
+MD5 (ttt-iteration_bot/tic-tac-toe/src/search.py) = 0abb839293a3f53c71be713a59e9cacb
+MD5 (ttt-iteration_bot/checkers/src/search.py)    = 0abb839293a3f53c71be713a59e9cacb
+MD5 (ttt-iteration_bot/chess-ttt/src/search.py)   = 0abb839293a3f53c71be713a59e9cacb
 
-$ md5 src/checkers/src/deepening.py \
-      src/chess-ttt/src/deepening.py
-MD5 (src/checkers/src/deepening.py) = ec7dfeb23be4185d82d0ed0c4183f2ab
-MD5 (src/chess-ttt/src/deepening.py) = ec7dfeb23be4185d82d0ed0c4183f2ab
+$ md5 ttt-iteration_bot/checkers/src/deepening.py \
+      ttt-iteration_bot/chess-ttt/src/deepening.py
+MD5 (ttt-iteration_bot/checkers/src/deepening.py) = ec7dfeb23be4185d82d0ed0c4183f2ab
+MD5 (ttt-iteration_bot/chess-ttt/src/deepening.py) = ec7dfeb23be4185d82d0ed0c4183f2ab
 ```
 
 `search.py` is the alpha-beta core (inherited from Tic-Tac-Toe).
@@ -89,7 +89,7 @@ material position and the center in an endgame position.
 
 ## Running
 
-From `src/chess-ttt/`:
+From `ttt-iteration_bot/chess-ttt/`:
 
 ```bash
 # Tests (fast — skips the depth-4 and depth-3 perft cases)

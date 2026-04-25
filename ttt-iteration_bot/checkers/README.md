@@ -1,7 +1,7 @@
 # Checkers
 
 Third iteration of the game-agnostic-search experiment that started in
-`src/tic-tac-toe/` and continued in `src/chess-ttt/`. The idea of this
+`ttt-iteration_bot/tic-tac-toe/` and continued in `ttt-iteration_bot/chess-ttt/`. The idea of this
 branch is: write the search core **once**, against a small interface, and
 then scale it to progressively more complex games by swapping out `game.py`
 and `evaluate.py` without touching the search.
@@ -9,12 +9,12 @@ and `evaluate.py` without touching the search.
 ## The "same engine" claim, verified
 
 ```
-$ md5 src/tic-tac-toe/src/search.py \
-      src/chess-ttt/src/search.py \
-      src/checkers/src/search.py
-MD5 (src/tic-tac-toe/src/search.py) = 0abb839293a3f53c71be713a59e9cacb
-MD5 (src/chess-ttt/src/search.py)   = 0abb839293a3f53c71be713a59e9cacb
-MD5 (src/checkers/src/search.py)    = 0abb839293a3f53c71be713a59e9cacb
+$ md5 ttt-iteration_bot/tic-tac-toe/src/search.py \
+      ttt-iteration_bot/chess-ttt/src/search.py \
+      ttt-iteration_bot/checkers/src/search.py
+MD5 (ttt-iteration_bot/tic-tac-toe/src/search.py) = 0abb839293a3f53c71be713a59e9cacb
+MD5 (ttt-iteration_bot/chess-ttt/src/search.py)   = 0abb839293a3f53c71be713a59e9cacb
+MD5 (ttt-iteration_bot/checkers/src/search.py)    = 0abb839293a3f53c71be713a59e9cacb
 ```
 
 The alpha-beta core is byte-identical across all three projects. The
@@ -81,14 +81,14 @@ won't fit in the remaining budget.
 Tests:
 
 ```
-cd src/checkers
+cd ttt-iteration_bot/checkers
 python3 -m pytest tests/ -v
 ```
 
 Play against the engine (human moves first as Red by default):
 
 ```
-cd src/checkers
+cd ttt-iteration_bot/checkers
 python3 -m src.main                       # play as Red, 3s/move, depth 8
 python3 -m src.main --play-as black       # play as Black
 python3 -m src.main --depth 10 --time 5   # deeper & longer

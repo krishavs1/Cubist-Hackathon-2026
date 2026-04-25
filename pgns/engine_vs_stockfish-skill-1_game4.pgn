@@ -6,4 +6,4 @@
 [Black "engine"]
 [Result "1-0"]
 
-1. e4 b6 2. Bc4 Ba6 3. Be2 Bc8 4. Nf3 d6 5. d4 c5 6. Bg5 Bf5 7. exf5 f6 8. Bb5+ Kf7 9. Be3 Qc8 10. Bc4+ e6 11. Bxe6+ Ke8 12. Bxc8 Kd8 13. Be6 g6 14. dxc5 Na6 15. Bd5 Nh6 16. Ng5 Ke8 17. fxg6 Nb4 18. g3 Nc6 19. h4 Ke7 20. Ne4 Rd8 21. Bxc6 Rc8 22. Qxd6# 1-0
+1. d4 Nc6 2. e4 Nf6 3. e5 Ng8 4. Be3 e6 5. Nh3 Bb4+ 6. Nc3 Nge7 7. Qh5 O-O 8. g4 g6 9. Qh4 Re8 10. Bd2 Nxd4 11. Ng5 Nxc2+ 12. Kd1 Nxa1 13. Qxh7+ Kf8 14. Qxf7# 1-0

@@ -6,4 +6,4 @@
 [Black "engine"]
 [Result "1-0"]
 
-1. c3 e6 2. e4 d6 3. a4 Qf6 4. d4 d5 5. Bd3 a6 6. e5 a5 7. Bb5+ Ke7 8. h4 h6 9. exf6+ Nxf6 10. Nf3 Nc6 11. Bf4 h5 12. Bxc6 Rb8 13. Qc1 Nd7 14. Bg5+ Kd6 15. Be7+ Kxe7 16. Bb5 Kd8 17. Ng5 Ra8 18. Qf4 Nb6 19. Qf3 Ba3 20. Nxa3 f5 21. c4 dxc4 22. Bxc4 c5 23. g4 fxg4 24. Qc3 Rh6 25. Bb5 Rh8 26. Qxc5 Nxa4 27. Nf7# 1-0
+1. e3 Nc6 2. Bb5 a6 3. Bxc6 dxc6 4. d4 Nf6 5. Nd2 Bg4 6. Ndf3 e5 7. Ne2 Bb4+ 8. Nd2 Bxe2 9. Kxe2 exd4 10. Nc4 Qd5 11. Qxd4 Qe6 12. Rd1 O-O 13. Bd2 c5 14. Qh4 Rfd8 15. b3 Bxd2 16. Rxd2 Re8 17. Qh3 Ng4 18. Rad1 Rac8 19. Rd5 b6 20. a4 Rb8 21. R1d3 Qe4 22. a5 bxa5 23. f3 Qe6 24. Qxg4 f5 25. Qg5 h6 26. Qxf5 Qc6 27. Rd1 g6 28. Qd7 Rxe3+ 29. Nxe3 Qxd7 30. Rxd7 Rc8 31. Rd8+ Rxd8 32. Rxd8+ Kh7 33. Ng4 g5 34. Ke3 Kg7 35. Ke2 Kh7 36. Rc8 Kg7 37. Ne3 Kh7 38. Kd3 Kg7 39. Ke4 Kh7 40. Rxc7+ Kh8 41. Rxc5 Kh7 42. Rxa5 Kg8 43. Rxa6 Kh7 44. c3 Kg7 45. Rd6 Kh7 46. Kd5 h5 47. g4 h4 48. Nf1 Kg7 49. Ne3 h3 50. b4 Kh7 51. Nf5 Kg8 52. Rf6 Kh8 53. Ke6 Kg8 54. Kd5 Kh8 55. c4 Kg8 56. Ke6 Kh8 57. Kf7 Kh7 58. b5 Kh8 59. Re6 Kh7 60. f4 gxf4 61. c5 Kh8 62. b6 Kh7 63. Rc6 Kh8 64. Rg6 Kh7 65. g5 Kh8 66. c6 Kh7 67. Rh6# 1-0

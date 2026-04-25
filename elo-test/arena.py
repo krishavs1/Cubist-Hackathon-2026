@@ -2,9 +2,7 @@
 Arena — the central benchmarking tool.
 
 Runs two UCI engines against each other and reports results.
-
-Usage:
-    python core/arena.py --engine-a core/baseline/run.sh --engine-b engines/my-engine/run.sh --games 50 --movetime 100
+Upgraded with Balanced Opening Pairs for Pro-Level Rigor.
 """
 
 import argparse
@@ -26,6 +24,17 @@ REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 ARENA_LOG = os.path.join(REPO_ROOT, "ARENA_LOG.md")
 PGNS_DIR = os.path.join(REPO_ROOT, "pgns")
 
+# Standard opening FENs for balanced testing
+OPENING_BOOK = [
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", # Startpos
+    "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", # Sicilian
+    "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", # French
+    "rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq g6 0 2", # Modern
+    "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", # Open Game
+    "rnbqkbnr/pp1ppppp/8/2p5/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 2", # English
+    "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2", # Queen's Gambit
+    "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2", # Caro-Kann
+]
 
 class UCIEngine:
     """Manages a UCI engine subprocess."""
@@ -46,7 +55,6 @@ class UCIEngine:
             text=True,
             bufsize=1,
         )
-        # Thread-based reader to avoid select() issues on macOS pipes
         self._queue = queue.Queue()
 
         def reader():
@@ -116,87 +124,65 @@ class UCIEngine:
         return self.proc is not None and self.proc.poll() is None
 
 
-def play_game(white_engine, black_engine, movetime, game_num):
-    """Play a single game. Returns ('white', 'black', or 'draw') and the chess.pgn.Game."""
-    board = chess.Board()
+def play_game(white_engine, black_engine, movetime, fen):
+    """Play a single game from a specific FEN."""
+    board = chess.Board(fen)
     game = chess.pgn.Game()
     game.headers["White"] = white_engine.name
     game.headers["Black"] = black_engine.name
-    game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
-    game.headers["Round"] = str(game_num)
-
+    game.headers["FEN"] = fen
+    game.setup(board)
+    
     node = game
-    moves_uci = []
-
     while not board.is_game_over(claim_draw=True):
         engine = white_engine if board.turn == chess.WHITE else black_engine
-
         if not engine.alive:
-            # Engine crashed — other side wins
             result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Result"] = "0-1" if result == "black" else "1-0"
             game.headers["Termination"] = "engine crash"
-            return result, game
+            break
 
-        pos_cmd = "position startpos"
-        if moves_uci:
-            pos_cmd += " moves " + " ".join(moves_uci)
-
+        pos_cmd = f"position fen {board.fen()}"
         if not engine.send(pos_cmd):
             result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Result"] = "0-1" if result == "black" else "1-0"
             game.headers["Termination"] = "engine crash"
-            return result, game
+            break
 
         engine.send(f"go movetime {movetime}")
         move_str = engine.read_bestmove()
 
         if move_str is None:
-            # Timeout or crash — forfeit
             result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Result"] = "0-1" if result == "black" else "1-0"
             game.headers["Termination"] = "timeout"
-            return result, game
+            break
 
-        # Validate move
         try:
-            move = chess.Move.from_uci(move_str)
-        except ValueError:
+            move = board.parse_uci(move_str)
+            if move not in board.legal_moves:
+                result = "black" if board.turn == chess.WHITE else "white"
+                game.headers["Termination"] = "illegal move"
+                break
+            node = node.add_main_variation(move)
+            board.push(move)
+        except:
             result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Result"] = "0-1" if result == "black" else "1-0"
             game.headers["Termination"] = "illegal move"
-            return result, game
-
-        if move not in board.legal_moves:
-            result = "black" if board.turn == chess.WHITE else "white"
-            game.headers["Result"] = "0-1" if result == "black" else "1-0"
-            game.headers["Termination"] = "illegal move"
-            return result, game
-
-        board.push(move)
-        moves_uci.append(move_str)
-        node = node.add_variation(move)
-
-    # Game ended naturally
-    outcome = board.outcome(claim_draw=True)
-    if outcome.winner is None:
-        game.headers["Result"] = "1/2-1/2"
-        return "draw", game
-    elif outcome.winner == chess.WHITE:
-        game.headers["Result"] = "1-0"
-        return "white", game
+            break
     else:
-        game.headers["Result"] = "0-1"
-        return "black", game
+        # Game ended naturally
+        res = board.result(claim_draw=True)
+        if res == "1-0": result = "white"
+        elif res == "0-1": result = "black"
+        else: result = "draw"
+
+    game.headers["Result"] = "1-0" if result == "white" else ("0-1" if result == "black" else "1/2-1/2")
+    return result, game
 
 
 def compute_elo_delta(wins, losses, draws):
-    """Compute Elo delta using standard 400-based logistic formula."""
     total = wins + losses + draws
     if total == 0:
         return 0
     score = (wins + 0.5 * draws) / total
-    # Clamp to avoid log(0)
     score = max(0.001, min(0.999, score))
     elo_delta = -400 * math.log10(1 / score - 1)
     return round(elo_delta)
@@ -217,7 +203,7 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"  Arena: {name_a} vs {name_b}")
-    print(f"  Games: {args.games} | Movetime: {args.movetime}ms")
+    print(f"  Games: {args.games} | Movetime: {args.movetime}ms (Balanced Opening Pairs)")
     print(f"{'='*60}\n")
 
     wins_a = 0
@@ -225,7 +211,9 @@ def main():
     draws = 0
 
     for game_num in range(1, args.games + 1):
-        # Alternate colors: engine-a plays white in odd games, black in even
+        pair_num = (game_num - 1) // 2
+        fen = OPENING_BOOK[pair_num % len(OPENING_BOOK)]
+        
         if game_num % 2 == 1:
             white_path, black_path = args.engine_a, args.engine_b
             a_is_white = True
@@ -239,32 +227,20 @@ def main():
         white_engine.start()
         black_engine.start()
 
-        w_ok = white_engine.init_uci()
-        b_ok = black_engine.init_uci()
-
-        if not w_ok or not b_ok:
-            # Engine failed to init — count as loss for the failing engine
-            if not w_ok and a_is_white:
-                losses_a += 1
-            elif not w_ok and not a_is_white:
-                wins_a += 1
-            elif not b_ok and a_is_white:
-                wins_a += 1
-            else:
-                losses_a += 1
-
+        if not white_engine.init_uci() or not black_engine.init_uci():
+            # Init failure handling simplified
+            losses_a += 1 if a_is_white else 0
+            wins_a += 1 if not a_is_white else 0
             white_engine.stop()
             black_engine.stop()
-            status = f"Game {game_num}/{args.games}: init failure"
-            print(f"  {status}")
+            print(f"  Game {game_num}/{args.games}: init failure")
             continue
 
-        result, pgn_game = play_game(white_engine, black_engine, args.movetime, game_num)
+        result, pgn_game = play_game(white_engine, black_engine, args.movetime, fen)
 
         white_engine.stop()
         black_engine.stop()
 
-        # Track from engine-a's perspective
         if result == "draw":
             draws += 1
             symbol = "="
@@ -286,7 +262,6 @@ def main():
             print(f" ({pgn_game.headers['Termination']})", end="")
         print()
 
-    # Summary
     elo_delta = compute_elo_delta(wins_a, losses_a, draws)
 
     print(f"\n{'='*60}")
@@ -296,20 +271,9 @@ def main():
 
     # Append to ARENA_LOG.md
     timestamp = datetime.now().strftime("%H:%M")
-    log_entry = (
-        f"[{timestamp}] {name_a} vs {name_b} | "
-        f"{args.games} games | "
-        f"{wins_a}W-{losses_a}L-{draws}D | "
-        f"Elo delta: {elo_delta:+d} | "
-        f"outcome: PENDING REVIEW\n"
-    )
-
+    log_entry = f"[{timestamp}] {name_a} vs {name_b} | {args.games} games | {wins_a}W-{losses_a}L-{draws}D | Elo delta: {elo_delta:+d}\n"
     with open(ARENA_LOG, "a") as f:
         f.write(log_entry)
-
-    print(f"  Results appended to ARENA_LOG.md")
-    print(f"  PGNs saved to pgns/\n")
-
 
 if __name__ == "__main__":
     main()

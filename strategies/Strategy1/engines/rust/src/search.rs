@@ -12,10 +12,8 @@
 //!   * Late Move Reductions (LMR)
 //!   * Reverse-futility pruning + razoring + child-level futility pruning
 //!
-//! Not (yet) ported:
-//!   * Null-move pruning -- shakmaty doesn't expose a direct null-move
-//!     primitive; reconstructing via `Setup` is doable and can be added
-//!     as a V2 enhancement for ~40 Elo.
+//!   * Null-move pruning via [`Position::swap_turn()`] when not in check and
+//!     the side to move still has a non-pawn piece.
 //!
 //! Eval contract: `eval::evaluate(pos)` returns centipawns from White's
 //! POV; this module converts to side-to-move POV internally.
@@ -23,7 +21,7 @@
 use std::time::Instant;
 
 use shakmaty::zobrist::{Zobrist64, ZobristHash};
-use shakmaty::{Chess, Color, EnPassantMode, Move, Position};
+use shakmaty::{Board, Chess, Color, EnPassantMode, Move, Position};
 
 use crate::eval::{evaluate, role_idx, EG_VALUE, INF, MATE, MATE_IN_MAX};
 
@@ -80,9 +78,10 @@ impl TranspositionTable {
     #[inline(always)]
     fn store(&mut self, key: u64, depth: i16, score: i32, flag: u8, packed_move: u16) {
         let slot = &mut self.table[(key & TT_MASK) as usize];
-        // Always-replace policy; depth-preferred would be slightly stronger
-        // but simple works well for a hackathon MVP.
-        *slot = TtEntry { key, depth, score, flag, packed_move };
+        // Depth-preferred: keep deeper searches; otherwise replace empty slots.
+        if slot.flag == TT_NONE || slot.depth <= depth {
+            *slot = TtEntry { key, depth, score, flag, packed_move };
+        }
     }
 }
 
@@ -183,6 +182,14 @@ impl Searcher {
         u64::from(z)
     }
 
+    /// Side to move must still have a minor or major piece (exclude null in K+P endings).
+    #[inline(always)]
+    fn side_has_null_material(board: &Board, color: Color) -> bool {
+        let ours = board.by_color(color);
+        let pawns_kings = board.pawns() | board.kings();
+        !(ours & !pawns_kings).is_empty()
+    }
+
     // ── Move ordering ──
 
     #[inline(always)]
@@ -226,7 +233,7 @@ impl Searcher {
             .drain(..)
             .map(|m| (self.score_move(&m, tt_move, ply), m))
             .collect();
-        scored.sort_by(|a, b| b.0.cmp(&a.0));
+        scored.sort_unstable_by(|a, b| b.0.cmp(&a.0));
         moves.extend(scored.into_iter().map(|(_, m)| m));
     }
 
@@ -235,7 +242,7 @@ impl Searcher {
             .drain(..)
             .map(|m| (Self::mvv_lva(&m), m))
             .collect();
-        scored.sort_by(|a, b| b.0.cmp(&a.0));
+        scored.sort_unstable_by(|a, b| b.0.cmp(&a.0));
         moves.extend(scored.into_iter().map(|(_, m)| m));
     }
 
@@ -387,6 +394,26 @@ impl Searcher {
             return if in_check { -MATE + ply as i32 } else { 0 };
         }
 
+        // Null-move pruning (after we know the position is not terminal).
+        if !is_pv
+            && !is_root
+            && !in_check
+            && depth >= 3
+            && Self::side_has_null_material(pos.board(), pos.turn())
+        {
+            if let Ok(nm_child) = pos.clone().swap_turn() {
+                let r = 2 + (depth >= 9) as i16 + (depth >= 16) as i16;
+                let null_depth = depth - 1 - r;
+                if null_depth > 0 {
+                    let null_score =
+                        -self.search(&nm_child, null_depth, -beta, (-beta).saturating_add(1), ply + 1);
+                    if !self.stop && null_score >= beta {
+                        return beta;
+                    }
+                }
+            }
+        }
+
         let tt_move: Option<Move> = find_move(tt_packed, &moves);
 
         // Reverse-futility / razoring (skipped in PV and when in check).
@@ -457,8 +484,15 @@ impl Searcher {
             let mut score: i32;
             if do_lmr {
                 let mut reduction: i16 = 1;
-                if searched >= 6 { reduction = 2; }
-                if depth >= 6 && searched >= 10 { reduction = 3; }
+                if searched >= 6 {
+                    reduction = 2;
+                }
+                if depth >= 6 && searched >= 10 {
+                    reduction = 3;
+                }
+                if depth >= 8 && searched >= 16 && new_depth > reduction + 2 {
+                    reduction += 1;
+                }
                 let red_depth = (new_depth - reduction).max(1);
                 score = -self.search(&child, red_depth, -alpha - 1, -alpha, ply + 1);
                 if score > alpha && !self.stop {
@@ -562,27 +596,17 @@ impl Searcher {
             let score;
             if depth < 4 {
                 score = self.search(pos, depth, -INF, INF, 0);
+            } else if prev_score.abs() >= MATE_IN_MAX - 200 {
+                score = self.search(pos, depth, -INF, INF, 0);
             } else {
-                let mut window = 40;
-                let mut alpha = prev_score - window;
-                let mut beta = prev_score + window;
-                loop {
-                    let s = self.search(pos, depth, alpha, beta, 0);
-                    if self.stop {
-                        score = s;
-                        break;
-                    }
-                    if s <= alpha {
-                        alpha = -INF;
-                        window *= 2;
-                    } else if s >= beta {
-                        beta = INF;
-                        window *= 2;
-                    } else {
-                        score = s;
-                        break;
-                    }
+                let window = 48;
+                let alpha = prev_score.saturating_sub(window);
+                let beta = prev_score.saturating_add(window);
+                let mut s = self.search(pos, depth, alpha, beta, 0);
+                if !self.stop && (s <= alpha || s >= beta) {
+                    s = self.search(pos, depth, -INF, INF, 0);
                 }
+                score = s;
             }
 
             if self.stop {

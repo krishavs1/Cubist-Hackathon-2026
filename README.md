@@ -51,9 +51,9 @@ graph TD
 To eliminate bias and establish a proper control, we isolated our development into four distinct tracks. Each track was constrained to a single AI prompting philosophy.
 
 ### 1. The Zero-Shot Megaprompt
-Instead of iterative coding, this strategy treated the AI as a high-level system architect that required maximum upfront context. Before generating a single line of code, we parallelized our entire five-person team to construct the ultimate master prompt. Each team member engaged independently with varying foundation AI models (e.g., Claude, GPT-4, Gemini) to brainstorm optimal chess engine architectures, search optimizations, and heuristic logic. By using different models, we ensured a diversity of algorithmic "thought." We then held a design review to cross-examine the outputs, extracting the most mathematically sound and performant ideas from each model while discarding redundancies.
+Instead of iterative coding, this strategy treated the AI as a high-level system architect that required maximum upfront context. Before generating a single line of code, we parallelized our entire five-person team to construct the ultimate master prompt. Each team member engaged independently with varying foundation AI models (e.g., Claude, GPT-4, Gemini) to brainstorm optimal chess engine architectures, search optimizations, and heuristic logic. By using different models, we ensured a diversity of algorithmic "thought." We then held a design review to cross-examine the outputs, extracting the most mathematically sound and performant ideas from each model while discarding redundancies. 
 
-We merged these optimal components into a single, cohesive blueprint. This resulted in approximately 53 KB of exhaustive input planning documentation, including files like Strategy1.md, DARWINIAN_AI.md, and custom heuristic guidelines. Finally, we fed this meticulously synthesized master document into a fresh Claude instance as a massive, zero-shot directive to see if comprehensive, human-curated synthesis could outperform iterative prompting.
+We merged these optimal components into a single, cohesive blueprint. This resulted in approximately 53 KB of exhaustive input planning documentation, including files like cubist_chess_megaprompt.md, DARWINIAN_AI.md, and custom heuristic guidelines. Finally, we fed this meticulously synthesized master document into a fresh Claude instance as a massive, zero-shot directive to see if comprehensive, human-curated synthesis could outperform iterative prompting.
 
 ### 2. Strict Test-Driven Development
 This track focused entirely on code stability and logical correctness over strategic flair. The developer forced the AI into a strict "red-green-refactor" loop. The AI was explicitly forbidden from writing engine logic until it had first generated failing unittest blocks for piece movement, search bounds, and standard UCI protocol behavior.
@@ -67,7 +67,11 @@ To quantitatively measure how much our advanced prompting methodologies actually
 ## 3. The resulting engines
 
 ### 1. The Zero-Shot Megaprompt
-Treat chess as a two-layer problem: a shared, heavy search stack (PVS, deepening, TT, null-move, LMR, killers, history, quiescence) that maximizes depth per second, and a swappable evaluator (“personality”) that scores positions with different blends of material, piece–square structure, king safety, and style. Playing strength comes from search depth plus whichever eval profile is active, not from hand-tuned move rules at the UCI layer.
+A chess engine has two parts: a **search** that looks many moves ahead, and an **evaluator** that scores each position it reaches (who's winning, by how much). We built one strong search — the standard modern recipe, looking as deep as possible in the time we have — and we froze it. What we let change was the evaluator, the "personality": one version cares most about material, another about king safety, another about controlling the center, and so on. Since every personality uses the same search, a tournament between them is a clean test of *which way of judging a position actually wins games*. 
+
+Claude wrote seven personalities (pesto, balanced, aggressive_attacker, positional_grinder, fortress, material_hawk, pawn_storm) from the megaprompt, and we ran a round-robin arena (ARENA_LOG.md) to see which one played best. A patient, positional style came out on top. We then fed its lost games back to Claude, asked "what went wrong?", and it rewrote the personality (as reflexion_v1) to fix those specific mistakes. The new version won a follow-up tournament and eventually became our final engine.
+
+Two recent research ideas shaped this. From *Eureka* (Ma et al., NVIDIA 2023) we take the result that an LLM can write evaluation functions as well as a human expert, so we let Claude invent the seven personalities instead of hand-crafting them. From *Reflexion* (Shinn et al., 2023) we take the result that language models improve faster when their feedback is written out in plain language rather than numerical gradients, so we hand Claude the PGN text of the losses and ask it to diagnose them instead of tuning weights by hand. The two-layer engine plus AI-refereed tournament is how those two ideas turn into something concrete.
 
 ### 2. Strict Test-Driven Development
 Prioritize simple, testable search: negamax alpha-beta over legal moves with MVV-LVA capture ordering and a modest fixed depth, backed by an evaluator tuned so tests and UCI contracts stay honest. The strategy is shallow but consistent lookahead—prefer positions the static eval likes after a few plies, without investing in transpositions, quiescence, or aggressive pruning.
@@ -197,5 +201,107 @@ Net = Σ (wins − losses) over the **three** opponents in §5.2 (draws omitted)
 | **chess-ttt** | 779 | −25 |
 
 *OneShotOpus calibrated Elo from `strategies/OneShotOpus/results.json` (same `elo-test/` protocol as §4).*
+
+---
+
+## 6. Compute Cost & Efficiency Analysis
+
+Elo alone doesn't tell the full story. A methodology that produces a 1400-Elo engine in one prompt is fundamentally different from one that reaches the same rating after 50 iterations and $10 in API costs. We tracked three compute dimensions for each strategy: cost to build the MVP, cost to fully optimize it, and the projected Elo ceiling of the optimized result.
+
+### 6.1 MVP Build Cost
+
+| Engine | Total Tokens | API Cost | Notes |
+|---|---|---|---|
+| chess-ttt | ~13,600 | ~$0.07 | Chess step only; game-agnostic search reused from TTT |
+| TDD | ~30,000 | ~$0.13 | Full TDD loop: tests, implementation, UCI conformance |
+| OneShotOpus | ~12,260 | ~$0.63 | Fewest tokens, but claude-opus-4-7 pricing ($75/M output) |
+| Strategy1 | ~205,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
+
+chess-ttt is the cheapest in absolute dollar terms because it reuses a verified search core and only replaces the game-specific layer. OneShotOpus has the lowest token count but the second-highest dollar cost — claude-opus-4-7 is expensive per token. Strategy1 consumes the most tokens by a wide margin due to its research-heavy upfront investment and multi-model prompting across the team.
+
+### 6.2 Expected Optimization Cost
+
+| Engine | Est. Tokens to Optimize | Est. API Cost | What's Left to Do |
+|---|---|---|---|
+| TDD | ~35,000 | ~$0.13 | Quiescence search, TT, LMR, null-move, PST tuning |
+| chess-ttt | ~38,000 | ~$0.15 | Same features, but requires forking the shared search core |
+| Strategy1 | ~76,000 | ~$0.30 | Reflexion v2/v3, endgame eval, tapered PST variants, time tuning |
+| OneShotOpus | ~varies | ~$1.80–3.00 | Texel tuning, NNUE — expensive on Opus; ~$0.20 if delegated to Haiku |
+
+TDD and chess-ttt are the cheapest to optimize because their search stacks have clear, well-understood gaps (no TT, no quiescence). Strategy1's optimization loop is more expensive because it runs internal tournaments to validate each change. OneShotOpus is the most expensive to optimize on-methodology because its remaining improvements (learned evaluation) are inherently token-heavy on a frontier model.
+
+### 6.3 Projected Elo Ceiling
+
+| Engine | Current Elo | Projected Ceiling | Gap to Close |
+|---|---|---|---|
+| Strategy1 | 1447 | ~1,500–1,700 | +50–250 |
+| OneShotOpus | 1212 | ~1,500–1,700 | +290–490 |
+| TDD | 863 | ~1,100–1,300 | +240–440 |
+| chess-ttt | 779 | ~1,000–1,250 | +220–470 |
+
+Strategy1's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed — a compiled Rust rewrite would push the ceiling significantly higher.
+
+---
+
+## 7. The Scoring Formula & Why We Chose Megaprompt
+
+Raw Elo is only one axis. We designed a **Methodology Evaluation Score (MES)** that combines all six factors into a single number, weighted to reflect what actually matters for deciding which strategy to invest in.
+
+### 7.1 The Formula
+
+$$\text{MES} = 0.25 F_1 + 0.20 F_2 + 0.20 F_3 + 0.15 F_4 + 0.10 F_5 + 0.10 F_6$$
+
+Each factor is normalized to [0, 1] using min-max scaling across the four engines. For performance factors (F1, F2, F5, F6), higher is better. For cost factors (F3, F4), lower cost maps to a higher score.
+
+| Factor | Description | Weight | Direction |
+|---|---|---|---|
+| F1 | Calibrated Elo vs Stockfish anchors | **25%** | Higher = better |
+| F2 | Cross-validation score vs other strategies | **20%** | Higher = better |
+| F3 | API cost to build the MVP | **20%** | Lower = better |
+| F4 | Expected API cost to fully optimize | **15%** | Lower = better |
+| F5 | Projected Elo ceiling of optimized strategy | **10%** | Higher = better |
+| F6 | Methodology quality score (hackathon rubric) | **10%** | Higher = better |
+
+The first four factors carry 80% of total weight because engine strength and compute efficiency are the primary axes that determine which methodology is worth scaling. F5 and F6 are meaningful tie-breakers but are more speculative — F5 is a projection, F6 is qualitative.
+
+**F6 — Methodology Rubric Score** is assessed on the four judging criteria (Chess Engine Quality, AI Usage, Process & Parallelization, Engineering Quality), scored 0–10 on each:
+
+| Engine | Chess Quality | AI Usage | Process | Engineering | Total /40 |
+|---|---|---|---|---|---|
+| Strategy1 | 10 | 9 | 9 | 8 | **36** |
+| TDD | 5 | 9 | 6 | 10 | **30** |
+| chess-ttt | 4 | 8 | 7 | 9 | **28** |
+| OneShotOpus | 8 | 5 | 3 | 5 | **21** |
+
+### 7.2 Final Scores
+
+| Engine | F1 | F2 | F3 | F4 | F5 | F6 | **MES** |
+|---|---|---|---|---|---|---|---|
+| **Strategy1** | 1.000 | 1.000 | 0.000 | 0.927 | 1.000 | 1.000 | **0.789** |
+| **OneShotOpus** | 0.648 | 0.796 | 0.276 | 0.000 | 1.000 | 0.583 | **0.534** |
+| **TDD** | 0.126 | 0.245 | 0.924 | 1.000 | 0.158 | 0.833 | **0.515** |
+| **chess-ttt** | 0.000 | 0.000 | 1.000 | 0.993 | 0.000 | 0.778 | **0.427** |
+
+### 7.3 Why Strategy1 Won
+
+**Strategy1 scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its 205K-token, multi-model research pipeline was the most expensive to construct. That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
+
+The second and third place finishers — OneShotOpus (0.534) and TDD (0.515) — are nearly tied, revealing an interesting tension: OneShotOpus wins on engine quality but is penalized heavily on F4 (Opus optimization costs ~$2.40 per pass); TDD wins on compute efficiency but is limited by its weaker engine. Neither dominates the other.
+
+chess-ttt scores lowest because its abstraction — one game-agnostic search core across three games — trades chess-specific strength for reusability. The penalty shows up directly in F1 and F2.
+
+The full derivation, raw data, and a sensitivity analysis are in `strategy_evaluation/`.
+
+---
+
+## 9. Final performance of the megaprompt
+
+The **megaprompt** track (Strategy 1) is best summarized by its **final, calibrated playing strength** on the same Stockfish anchor ladder used elsewhere in this document: skills **1 / 3 / 5** at nominal **1000 / 1200 / 1500** Elo, combined with inverse-variance weighting and the trinomial error model in `elo-test/grade.py` (see §4.1).
+
+That **final** number comes from the **optimized Rust port** of the megaprompt engine (`strategies/Strategy1/engines/rust/`, UCI via `engine/run.sh`), which carries the same search-and-eval intent as the Darwinian MVE stack (PVS, iterative deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered eval, Reflexion-style corrections) but spends the movetime budget more effectively in native code.
+
+**Calibrated Elo: 1740** (95% **CI [1597, 1883]**), from **60** total grading games (**20 per anchor**), **100 ms/move**, recorded in `strategies/Strategy1/engines/rust/results.json`. Anchor splits on that run: **20–0–0** vs skill 1, **18–1–1** vs skill 3, **15–3–2** vs skill 5 (wins–losses–draws from the engine’s perspective).
+
+For comparison, the **Strategy1** row in §4.2 reflects the **Python** engine under the **80 ms / 12 games per anchor** sweep from an earlier calibration pass. Treat **1740** as the megaprompt line’s **reported final strength** when documenting outcomes from this repository; the two figures differ by **implementation** (Python MVE vs Rust), **time control**, and **games per anchor**, not by a change in the anchor definition.
 
 ---

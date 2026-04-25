@@ -1,7 +1,0 @@
-[package]
-name = "rust-engine"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-shakmaty = "0.26"

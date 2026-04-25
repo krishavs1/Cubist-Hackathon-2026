@@ -252,11 +252,99 @@ def pawn_storm(board: chess.Board) -> int:
 from search import pesto_evaluate as pesto  # noqa: E402  (module-level for hot path)
 
 
+def reflexion_v1(board: chess.Board) -> int:
+    """
+    Reflexion cycle 1 — corrects positional_grinder's blind spots.
+
+    positional_grinder lost games because it had no concept of:
+      * piece development (minor pieces moving off starting squares)
+      * castling (king stayed on e1/e8 and got mated on central files)
+      * knight placement (knights wandered to a/h rim squares)
+      * tempo (queen came out too early, same piece moved 5-7 times)
+
+    This evaluator inherits positional_grinder's logic and adds:
+      + bonus for each developed minor piece
+      + large bonus for having castled; large penalty for not castling
+      + penalty for knights on the a/h files
+      + penalty for an early queen (moved before 4 minors are developed)
+
+    All additions combined cap at ~120 cp so material remains dominant.
+    """
+    score = material_balance(board)
+
+    for sq in CENTER_SQUARES:
+        if board.is_attacked_by(chess.WHITE, sq):
+            score += 25
+        if board.is_attacked_by(chess.BLACK, sq):
+            score -= 25
+
+    for sq in EXTENDED_CENTER:
+        piece = board.piece_at(sq)
+        if piece:
+            score += 8 if piece.color == chess.WHITE else -8
+
+    score -= max(0, 3 - pawn_shield_count(board, chess.WHITE)) * 25
+    score += max(0, 3 - pawn_shield_count(board, chess.BLACK)) * 25
+
+    # -- REFLEXION ADDITIONS --
+
+    # 1. Development: bonus for minor pieces off their starting squares
+    white_minor_starts = (chess.B1, chess.G1, chess.C1, chess.F1)
+    black_minor_starts = (chess.B8, chess.G8, chess.C8, chess.F8)
+    dev_w = sum(
+        1 for sq in white_minor_starts
+        if board.piece_at(sq) is None
+        or board.piece_at(sq).color != chess.WHITE
+        or board.piece_at(sq).piece_type not in (chess.KNIGHT, chess.BISHOP)
+    )
+    dev_b = sum(
+        1 for sq in black_minor_starts
+        if board.piece_at(sq) is None
+        or board.piece_at(sq).color != chess.BLACK
+        or board.piece_at(sq).piece_type not in (chess.KNIGHT, chess.BISHOP)
+    )
+    score += dev_w * 15
+    score -= dev_b * 15
+
+    # 2. Castling: big reward for having castled
+    wk_sq = board.king(chess.WHITE)
+    bk_sq = board.king(chess.BLACK)
+    if wk_sq in (chess.G1, chess.C1):
+        score += 40
+    elif wk_sq == chess.E1 and board.fullmove_number > 10:
+        score -= 40  # king stuck in center past move 10
+    if bk_sq in (chess.G8, chess.C8):
+        score -= 40
+    elif bk_sq == chess.E8 and board.fullmove_number > 10:
+        score += 40
+
+    # 3. Knight-on-rim penalty (a-file and h-file)
+    rim_files = chess.BB_FILE_A | chess.BB_FILE_H
+    w_rim_knights = chess.popcount(
+        board.pieces_mask(chess.KNIGHT, chess.WHITE) & rim_files
+    )
+    b_rim_knights = chess.popcount(
+        board.pieces_mask(chess.KNIGHT, chess.BLACK) & rim_files
+    )
+    score -= w_rim_knights * 20
+    score += b_rim_knights * 20
+
+    # 4. Early queen penalty (queen moved before 3 minors are developed)
+    w_queen_home = board.piece_at(chess.D1) == chess.Piece(chess.QUEEN, chess.WHITE)
+    b_queen_home = board.piece_at(chess.D8) == chess.Piece(chess.QUEEN, chess.BLACK)
+    if not w_queen_home and dev_w < 3 and board.fullmove_number < 10:
+        score -= 25
+    if not b_queen_home and dev_b < 3 and board.fullmove_number < 10:
+        score += 25
+
+    return score
+
 # ============================================================
 # REGISTRY -- name -> evaluator function
 # ============================================================
 
 REGISTRY: Dict[str, Callable[[chess.Board], int]] = {
+    "reflexion_v1":        reflexion_v1,
     "pesto":               pesto,
     "balanced":            balanced,
     "aggressive_attacker": aggressive_attacker,

@@ -37,6 +37,9 @@ import chess
 from heuristics import REGISTRY, get
 from search import search as run_search
 
+# Backwards-compat alias so arena/tournament.py can call `engine.search(...)`.
+search = run_search
+
 
 # ============================================================
 # UCI PROTOCOL

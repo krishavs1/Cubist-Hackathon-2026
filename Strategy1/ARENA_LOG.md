@@ -42,3 +42,77 @@ game  30/30:           pawn_storm (W) vs fortress             (B)  ->     0-1  (
 
 **Champion: `positional_grinder`**
 
+# Tournament started 2026-04-25 13:01:40
+# 3 personalities, 2 games/pair, 150ms/move
+
+game   1/6:         reflexion_v1 (W) vs positional_grinder   (B)  ->     1-0  (113 plies, 15.8s)
+game   2/6:   positional_grinder (W) vs reflexion_v1         (B)  -> 1/2-1/2  (13 plies, 1.9s)
+game   3/6:         reflexion_v1 (W) vs fortress             (B)  -> 1/2-1/2  (200 plies, 28.3s)
+game   4/6:             fortress (W) vs reflexion_v1         (B)  -> 1/2-1/2  (13 plies, 2.0s)
+game   5/6:   positional_grinder (W) vs fortress             (B)  -> 1/2-1/2  (50 plies, 7.4s)
+game   6/6:             fortress (W) vs positional_grinder   (B)  -> 1/2-1/2  (13 plies, 1.9s)
+
+## Final Standings
+1. **reflexion_v1** -- Elo 1213, 1W/3D/0L
+2. **fortress** -- Elo 1200, 0W/4D/0L
+3. **positional_grinder** -- Elo 1187, 0W/3D/1L
+
+**Champion: `reflexion_v1`**
+
+
+## [REFLEXION] cycle 1 -- 2026-04-25 13:02:38
+
+**Analyst:** Claude (via Cursor IDE, offline mode)
+**Champion before:** `positional_grinder`
+**Loss PGNs analysed:** 10 games
+**Champion after:** `reflexion_v1`
+**Outcome:** PROMOTED -- `reflexion_v1` is new champion in run.sh
+
+### Observed failure modes
+1. No concept of piece development (5-7 opening moves with the same piece)
+2. No castling -- king stuck on e1/e8 and mated on central files
+3. Knights wandered to rim squares (a/h files)
+4. Tempo loss from repeated same-piece moves
+
+### Correction (`reflexion_v1`)
+Inherits `positional_grinder` and adds: development bonus, castling
+bonus/penalty, knight-on-rim penalty, early-queen penalty.
+See `reflexion/REFLEXION_ANALYSIS.md` for the full reasoning trace.
+
+### Post-Reflexion Elo Standings
+1. **reflexion_v1** -- Elo 1213
+2. **fortress** -- Elo 1200
+3. **positional_grinder** -- Elo 1187
+
+<details>
+<summary>Full tournament output</summary>
+
+```
+Tournament: 3 personalities, 3 pairs, 2 games/pair = 6 games
+Time control: 150ms per move
+------------------------------------------------------------------------------
+  game   1/6:         reflexion_v1 (W) vs positional_grinder   (B)  ->     1-0  (113 plies, 15.8s)
+  game   2/6:   positional_grinder (W) vs reflexion_v1         (B)  -> 1/2-1/2  (13 plies, 1.9s)
+  game   3/6:         reflexion_v1 (W) vs fortress             (B)  -> 1/2-1/2  (200 plies, 28.3s)
+  game   4/6:             fortress (W) vs reflexion_v1         (B)  -> 1/2-1/2  (13 plies, 2.0s)
+  game   5/6:   positional_grinder (W) vs fortress             (B)  -> 1/2-1/2  (50 plies, 7.4s)
+  game   6/6:             fortress (W) vs positional_grinder   (B)  -> 1/2-1/2  (13 plies, 1.9s)
+
+Tournament complete in 57.2s (9.5s per game avg)
+
+==============================================================================
+Rank Personality                Elo     W    D    L     Score      WR%
+------------------------------------------------------------------------------
+1    reflexion_v1              1213     1    3    0    2.5/4     62.5%
+2    fortress                  1200     0    4    0    2.0/4     50.0%
+3    positional_grinder        1187     0    3    1    1.5/4     37.5%
+==============================================================================
+
+>>> CHAMPION: reflexion_v1  (Elo 1213) <<<
+
+Results appended to /Users/anirudh/Documents/Personal Projects/Cubist-Hackathon-2026/Strategy1/arena/../ARENA_LOG.md
+```
+
+</details>
+
+---

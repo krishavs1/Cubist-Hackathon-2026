@@ -22,9 +22,10 @@ Run as a UCI engine:
     python3 engine.py --heuristic aggressive_attacker
 
 Use programmatically:
-    from engine import run_search
+    from search import Searcher
     from heuristics import get
-    move = run_search(board, time_limit_ms=1000, eval_fn=get('fortress'))
+    s = Searcher(get("fortress"))
+    move = s.go_ms(board, time_limit_ms=1000)
 """
 
 import argparse
@@ -35,7 +36,7 @@ from typing import Callable, List
 import chess
 
 from heuristics import REGISTRY, get
-from search import search as run_search
+from search import Searcher, search as run_search
 
 # Backwards-compat alias so arena/tournament.py can call `engine.search(...)`.
 search = run_search
@@ -111,6 +112,8 @@ def parse_time_limit(tokens: List[str], turn: chess.Color) -> int:
 def uci_loop(eval_fn: Callable[[chess.Board], int], engine_name: str) -> None:
     """Main UCI loop. The chosen personality drives the shared search core."""
     board = chess.Board()
+    # One Searcher per session: TT / killers / history persist between moves.
+    searcher = Searcher(eval_fn)
 
     while True:
         try:
@@ -139,6 +142,7 @@ def uci_loop(eval_fn: Callable[[chess.Board], int], engine_name: str) -> None:
 
         elif cmd == "ucinewgame":
             board = chess.Board()
+            searcher.reset()
 
         elif cmd == "position":
             board = parse_position(tokens[1:])
@@ -146,7 +150,7 @@ def uci_loop(eval_fn: Callable[[chess.Board], int], engine_name: str) -> None:
         elif cmd == "go":
             time_limit_ms = parse_time_limit(tokens[1:], board.turn)
             try:
-                move = run_search(board, time_limit_ms, eval_fn=eval_fn, verbose=True)
+                move = searcher.go_ms(board, time_limit_ms, verbose=True)
             except Exception as e:
                 print(f"info string SEARCH ERROR: {e}", flush=True)
                 legal = list(board.legal_moves)

@@ -35,12 +35,6 @@
       "losses": 0,
       "draws": 1,
       "total": 10
-    },
-    "Strategy1": {
-      "wins": 7,
-      "losses": 0,
-      "draws": 3,
-      "total": 10
     }
   },
   "elo": 1195.135583111112,

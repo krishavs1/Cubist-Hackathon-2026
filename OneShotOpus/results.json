@@ -1,0 +1,50 @@
+{
+  "name": "OneShotOpus",
+  "anchors": {
+    "skill_1": {
+      "wins": 10,
+      "losses": 2,
+      "draws": 0,
+      "total": 12,
+      "base_elo": 1000.0
+    },
+    "skill_3": {
+      "wins": 2,
+      "losses": 7,
+      "draws": 3,
+      "total": 12,
+      "base_elo": 1200.0
+    },
+    "skill_5": {
+      "wins": 2,
+      "losses": 7,
+      "draws": 3,
+      "total": 12,
+      "base_elo": 1500.0
+    }
+  },
+  "cross_validation": {
+    "test-driven-development": {
+      "wins": 8,
+      "losses": 0,
+      "draws": 2,
+      "total": 10
+    },
+    "chess-ttt": {
+      "wins": 10,
+      "losses": 0,
+      "draws": 0,
+      "total": 10
+    },
+    "Strategy1": {
+      "wins": 0,
+      "losses": 4,
+      "draws": 6,
+      "total": 10
+    }
+  },
+  "elo": 1211.7613771157196,
+  "elo_ci_lower": 1096.823835289428,
+  "elo_ci_upper": 1326.6989189420112,
+  "graded_at": "2026-04-25T12:38:06.515454"
+}

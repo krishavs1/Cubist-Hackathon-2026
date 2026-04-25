@@ -108,9 +108,10 @@ impl Engine {
 
         if let Some(&mt) = params.get("movetime") {
             let t = (mt as u64).max(10);
-            // Small safety margin so we don't overrun the arena's clock.
-            let hard = t.saturating_sub(30).max(10);
-            return (hard, hard, 64);
+            // Use almost the full budget: soft stops deepening, hard aborts search.
+            let hard = t.saturating_sub(3).max(10);
+            let soft = t.saturating_sub(12).max(10);
+            return (soft, hard, 96);
         }
 
         let (time_left, incr) = match self.pos.turn() {

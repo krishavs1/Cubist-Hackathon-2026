@@ -293,3 +293,15 @@ chess-ttt scores lowest because its abstraction — one game-agnostic search cor
 The full derivation, raw data, and a sensitivity analysis are in `strategy_evaluation/`.
 
 ---
+
+## 9. Final performance of the megaprompt
+
+The **megaprompt** track (Strategy 1) is best summarized by its **final, calibrated playing strength** on the same Stockfish anchor ladder used elsewhere in this document: skills **1 / 3 / 5** at nominal **1000 / 1200 / 1500** Elo, combined with inverse-variance weighting and the trinomial error model in `elo-test/grade.py` (see §4.1).
+
+That **final** number comes from the **optimized Rust port** of the megaprompt engine (`strategies/Strategy1/engines/rust/`, UCI via `engine/run.sh`), which carries the same search-and-eval intent as the Darwinian MVE stack (PVS, iterative deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered eval, Reflexion-style corrections) but spends the movetime budget more effectively in native code.
+
+**Calibrated Elo: 1740** (95% **CI [1597, 1883]**), from **60** total grading games (**20 per anchor**), **100 ms/move**, recorded in `strategies/Strategy1/engines/rust/results.json`. Anchor splits on that run: **20–0–0** vs skill 1, **18–1–1** vs skill 3, **15–3–2** vs skill 5 (wins–losses–draws from the engine’s perspective).
+
+For comparison, the **Strategy1** row in §4.2 reflects the **Python** engine under the **80 ms / 12 games per anchor** sweep from an earlier calibration pass. Treat **1740** as the megaprompt line’s **reported final strength** when documenting outcomes from this repository; the two figures differ by **implementation** (Python MVE vs Rust), **time control**, and **games per anchor**, not by a change in the anchor definition.
+
+---

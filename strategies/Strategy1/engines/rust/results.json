@@ -1,0 +1,31 @@
+{
+  "name": "rust",
+  "anchors": {
+    "skill_1": {
+      "wins": 20,
+      "losses": 0,
+      "draws": 0,
+      "total": 20,
+      "base_elo": 1000.0
+    },
+    "skill_3": {
+      "wins": 18,
+      "losses": 1,
+      "draws": 1,
+      "total": 20,
+      "base_elo": 1200.0
+    },
+    "skill_5": {
+      "wins": 15,
+      "losses": 3,
+      "draws": 2,
+      "total": 20,
+      "base_elo": 1500.0
+    }
+  },
+  "cross_validation": {},
+  "elo": 1739.9655900144542,
+  "elo_ci_lower": 1597.163281159595,
+  "elo_ci_upper": 1882.7678988693133,
+  "graded_at": "2026-04-25T14:13:57.794536"
+}

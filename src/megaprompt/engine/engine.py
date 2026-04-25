@@ -78,6 +78,24 @@ PIECE_VALUES = {
 
 nodes = 0
 
+# Module-level deadline used by the search to abort cleanly when the time
+# budget is exhausted. Set by search() before every go, then checked inside
+# negamax/quiescence every few thousand nodes.
+_search_deadline = 0.0
+
+
+class SearchAborted(Exception):
+    """Raised from inside negamax/quiescence when the time budget expires.
+
+    The root search catches this and keeps whatever best move was returned
+    by the last fully-completed iterative-deepening iteration.
+    """
+
+
+def _time_is_up():
+    return time.time() >= _search_deadline
+
+
 def evaluate_board(board):
     if board.is_checkmate():
         if board.turn:
@@ -109,6 +127,10 @@ def move_ordering(board, move):
 def quiescence_search(board, alpha, beta):
     global nodes
     nodes += 1
+    # Periodic time check. 2047 is chosen so the mask is cheap and the
+    # check fires often enough to keep latency bounded.
+    if nodes & 2047 == 0 and _time_is_up():
+        raise SearchAborted()
     stand_pat = evaluate_board(board)
     if stand_pat >= beta:
         return beta
@@ -132,6 +154,8 @@ def quiescence_search(board, alpha, beta):
 def negamax(board, depth, alpha, beta):
     global nodes
     nodes += 1
+    if nodes & 2047 == 0 and _time_is_up():
+        raise SearchAborted()
     if depth == 0:
         return quiescence_search(board, alpha, beta)
 
@@ -169,11 +193,11 @@ class Engine:
                 continue
 
             if cmd[0] == "uci":
-                print("id name MegapromptEngine")
-                print("id author GeminiCLI")
-                print("uciok")
+                print("id name MegapromptEngine", flush=True)
+                print("id author GeminiCLI", flush=True)
+                print("uciok", flush=True)
             elif cmd[0] == "isready":
-                print("readyok")
+                print("readyok", flush=True)
             elif cmd[0] == "ucinewgame":
                 self.board = chess.Board()
             elif cmd[0] == "position":
@@ -196,45 +220,133 @@ class Engine:
                 break
 
     def search(self, cmd):
-        global nodes
+        """Iterative-deepening search that honors UCI time controls.
+
+        Supports: ``go movetime <ms>``, ``go wtime <ms> btime <ms> [winc
+        <ms>] [binc <ms>]``, ``go depth <n>``, and bare ``go``. The
+        search deepens one ply at a time and aborts cleanly when the
+        deadline is reached (via SearchAborted). We always keep the best
+        move from the last FULLY completed iteration, so a partial
+        search never regresses the returned move.
+        """
+        global nodes, _search_deadline
         nodes = 0
         start_time = time.time()
-        best_move = None
-        best_score = -999999
-        
-        depth = 3
-        # Simple depth handling
-        if "depth" in cmd:
-            depth = int(cmd[cmd.index("depth") + 1])
 
-        moves = list(self.board.legal_moves)
-        moves.sort(key=lambda m: move_ordering(self.board, m), reverse=True)
+        # ---- Parse the go command ----
+        movetime_ms = None
+        depth_limit = None
+        wtime = btime = winc = binc = None
+        i = 1
+        while i < len(cmd):
+            tok = cmd[i]
+            nxt = cmd[i + 1] if i + 1 < len(cmd) else None
+            try:
+                if tok == "movetime" and nxt is not None:
+                    movetime_ms = int(nxt); i += 2; continue
+                if tok == "depth" and nxt is not None:
+                    depth_limit = int(nxt); i += 2; continue
+                if tok == "wtime" and nxt is not None:
+                    wtime = int(nxt); i += 2; continue
+                if tok == "btime" and nxt is not None:
+                    btime = int(nxt); i += 2; continue
+                if tok == "winc" and nxt is not None:
+                    winc = int(nxt); i += 2; continue
+                if tok == "binc" and nxt is not None:
+                    binc = int(nxt); i += 2; continue
+            except (TypeError, ValueError):
+                pass
+            i += 1
 
-        alpha = -999999
-        beta = 999999
-
-        for move in moves:
-            self.board.push(move)
-            score = -negamax(self.board, depth - 1, -beta, -alpha)
-            self.board.pop()
-            if score > best_score:
-                best_score = score
-                best_move = move
-            if score > alpha:
-                alpha = score
-
-        elapsed = time.time() - start_time
-        nps = int(nodes / elapsed) if elapsed > 0 else 0
-        
-        if best_move:
-            print(f"info depth {depth} score cp {best_score} nodes {nodes} nps {nps}")
-            print(f"bestmove {best_move.uci()}")
+        # ---- Compute the time budget ----
+        if movetime_ms is not None:
+            budget_s = movetime_ms / 1000.0
+        elif wtime is not None or btime is not None:
+            # Cheap clock allocation: give ourselves ~1/30th of our
+            # remaining clock plus one increment. Leaves comfortable
+            # headroom for the rest of the game.
+            my_time = (wtime if self.board.turn == chess.WHITE else btime) or 0
+            my_inc = (winc if self.board.turn == chess.WHITE else binc) or 0
+            budget_s = max(0.01, (my_time / 30.0 + my_inc) / 1000.0)
+        elif depth_limit is not None:
+            budget_s = 1e9  # effectively unlimited when a depth is given
         else:
-            # Fallback for game over or no legal moves
-            if list(self.board.legal_moves):
-                print(f"bestmove {list(self.board.legal_moves)[0].uci()}")
+            budget_s = 1.0  # sane default for bare `go`
+
+        # Keep 15% in reserve so we never miss the wall-clock deadline.
+        # Arena uses a 2s hard timeout per move; overshooting is a loss.
+        _search_deadline = start_time + budget_s * 0.85
+        max_depth = depth_limit if depth_limit is not None else 64
+
+        # ---- Handle trivial cases ----
+        moves = list(self.board.legal_moves)
+        if not moves:
+            print("bestmove 0000", flush=True)
+            return
+        if len(moves) == 1:
+            print(f"info depth 0 string forced move", flush=True)
+            print(f"bestmove {moves[0].uci()}", flush=True)
+            return
+
+        # Fallback move so we always have something to return.
+        best_move = moves[0]
+        best_score = 0
+
+        # ---- Iterative deepening ----
+        for depth in range(1, max_depth + 1):
+            iter_best_move = None
+            iter_best_score = -999999
+            alpha, beta = -999999, 999999
+            aborted = False
+
+            # Put the previous best move first for better alpha-beta pruning.
+            ordered = [best_move] + [m for m in moves if m != best_move]
+            ordered.sort(
+                key=lambda m: (
+                    0 if m == best_move else 1,
+                    -move_ordering(self.board, m),
+                )
+            )
+
+            for move in ordered:
+                # Check deadline before each root move; if time's up and
+                # we already completed depth>=1, keep that result.
+                if depth > 1 and _time_is_up():
+                    aborted = True
+                    break
+                self.board.push(move)
+                try:
+                    score = -negamax(self.board, depth - 1, -beta, -alpha)
+                except SearchAborted:
+                    self.board.pop()
+                    aborted = True
+                    break
+                self.board.pop()
+
+                if score > iter_best_score:
+                    iter_best_score = score
+                    iter_best_move = move
+                if score > alpha:
+                    alpha = score
+
+            # Only commit the iteration's result if we completed it fully.
+            if not aborted and iter_best_move is not None:
+                best_move = iter_best_move
+                best_score = iter_best_score
+                elapsed = time.time() - start_time
+                nps = int(nodes / elapsed) if elapsed > 0 else 0
+                print(
+                    f"info depth {depth} score cp {best_score} "
+                    f"nodes {nodes} nps {nps} time {int(elapsed * 1000)}",
+                    flush=True,
+                )
             else:
-                print("bestmove 0000")
+                break
+
+            if _time_is_up():
+                break
+
+        print(f"bestmove {best_move.uci()}", flush=True)
 
 if __name__ == "__main__":
     engine = Engine()

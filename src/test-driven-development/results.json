@@ -1,15 +1,44 @@
 {
   "name": "test-driven-development",
-  "matchups": {
-    "stockfish_anchor": {
-      "wins": 7,
-      "losses": 34,
-      "draws": 9,
-      "total": 50
+  "anchors": {
+    "skill_1": {
+      "wins": 2,
+      "losses": 6,
+      "draws": 4,
+      "total": 12,
+      "base_elo": 1000.0
+    },
+    "skill_3": {
+      "wins": 0,
+      "losses": 10,
+      "draws": 2,
+      "total": 12,
+      "base_elo": 1200.0
+    },
+    "skill_5": {
+      "wins": 0,
+      "losses": 11,
+      "draws": 1,
+      "total": 12,
+      "base_elo": 1500.0
     }
   },
-  "elo": 790.0948443380444,
-  "elo_ci_lower": 668.622911429079,
-  "elo_ci_upper": 877.5604789336934,
-  "graded_at": "2026-04-24T23:42:01.104962"
+  "cross_validation": {
+    "chess-ttt": {
+      "wins": 5,
+      "losses": 0,
+      "draws": 5,
+      "total": 10
+    },
+    "SimpleOneShot_bot": {
+      "wins": 1,
+      "losses": 9,
+      "draws": 0,
+      "total": 10
+    }
+  },
+  "elo": 863.3869567262932,
+  "elo_ci_lower": 737.2394063137529,
+  "elo_ci_upper": 989.5345071388335,
+  "graded_at": "2026-04-25T10:08:25.706256"
 }

@@ -1,0 +1,44 @@
+{
+  "name": "SimpleOneShot_bot",
+  "anchors": {
+    "skill_1": {
+      "wins": 9,
+      "losses": 2,
+      "draws": 1,
+      "total": 12,
+      "base_elo": 1000.0
+    },
+    "skill_3": {
+      "wins": 4,
+      "losses": 6,
+      "draws": 2,
+      "total": 12,
+      "base_elo": 1200.0
+    },
+    "skill_5": {
+      "wins": 0,
+      "losses": 8,
+      "draws": 4,
+      "total": 12,
+      "base_elo": 1500.0
+    }
+  },
+  "cross_validation": {
+    "test-driven-development": {
+      "wins": 9,
+      "losses": 1,
+      "draws": 0,
+      "total": 10
+    },
+    "chess-ttt": {
+      "wins": 9,
+      "losses": 0,
+      "draws": 1,
+      "total": 10
+    }
+  },
+  "elo": 1195.135583111112,
+  "elo_ci_lower": 1087.2053377657282,
+  "elo_ci_upper": 1303.0658284564959,
+  "graded_at": "2026-04-25T10:19:54.906785"
+}

@@ -149,17 +149,63 @@ def fishtest_stats(w, l, d):
     return elo, se_elo
 
 def run_matchup(name_a, path_a, name_b, path_b, games, movetime):
-    print(f"\n>>> Matchup: {name_a} vs {name_b} ({games} games)")
-    cmd = ["python3", os.path.join(SCRIPT_DIR, "arena.py"), "--engine-a", path_a, "--engine-b", path_b, "--games", str(games), "--movetime", str(movetime)]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    """Run an arena matchup and return per-game outcomes from A's perspective.
+
+    Arena prints two kinds of lines we care about:
+      - Per-game: ``  Game N/M: [W|B|D] <pgn result>`` where the letter is
+        the winner's color (W, B, or D for draw).
+      - Final:    ``Final: {W}W-{L}L-{D}D`` with totals already reduced to
+        A's perspective (arena tracks color alternation internally).
+
+    We track color-alternation here too (odd games => A is white) to convert
+    each per-game letter into an A-perspective outcome, but we also fall back
+    to the Final line if parsing diverges. Returns a list of floats
+    (1.0 win, 0.0 loss, 0.5 draw) for A.
+    """
+    print(f"\n>>> Matchup: {name_a} vs {name_b} ({games} games)", flush=True)
+    # Use the same interpreter as the parent (e.g. .venv/bin/python) so
+    # arena.py's `import chess` doesn't break if system python3 lacks it.
+    cmd = [sys.executable, "-u", os.path.join(SCRIPT_DIR, "arena.py"),
+           "--engine-a", path_a, "--engine-b", path_b,
+           "--games", str(games), "--movetime", str(movetime)]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, bufsize=1)
+
     game_outcomes = []
+    final_w = final_l = final_d = None
+    import re
+    game_re = re.compile(r"Game\s+(\d+)/\d+:\s*\[([WBD])\]")
+    final_re = re.compile(r"Final:\s*(\d+)W-(\d+)L-(\d+)D")
+
     for line in process.stdout:
-        print(line, end="")
-        if "Game" in line and "[" in line and "]" in line:
-            if "[+]" in line: game_outcomes.append(1.0)
-            elif "[-]" in line: game_outcomes.append(0.0)
-            elif "[=]" in line: game_outcomes.append(0.5)
+        print(line, end="", flush=True)
+        m = game_re.search(line)
+        if m:
+            game_num = int(m.group(1))
+            winner = m.group(2)
+            a_is_white = (game_num % 2 == 1)
+            if winner == "D":
+                game_outcomes.append(0.5)
+            elif (winner == "W" and a_is_white) or (winner == "B" and not a_is_white):
+                game_outcomes.append(1.0)
+            else:
+                game_outcomes.append(0.0)
+            continue
+        fm = final_re.search(line)
+        if fm:
+            final_w, final_l, final_d = (int(x) for x in fm.groups())
     process.wait()
+
+    # Prefer the Final: totals if both are present and they disagree, or
+    # reconstruct from Final: if per-game parsing missed anything.
+    if final_w is not None and final_l is not None and final_d is not None:
+        reconstructed = [1.0] * final_w + [0.0] * final_l + [0.5] * final_d
+        if len(reconstructed) != len(game_outcomes) or (
+            reconstructed.count(1.0) != game_outcomes.count(1.0)
+            or reconstructed.count(0.0) != game_outcomes.count(0.0)
+            or reconstructed.count(0.5) != game_outcomes.count(0.5)
+        ):
+            return reconstructed
     return game_outcomes
 
 def main():

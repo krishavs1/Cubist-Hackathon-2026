@@ -8,4 +8,4 @@
 [FEN "rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
 [SetUp "1"]
 
-2. Ne2 Nf6 3. e5 Ne4 4. h4 gxh4 5. d3 Nc5 6. Nbc3 Nc6 7. d4 Ne6 8. a3 Bg7 9. Rxh4 d5 10. Rh5 O-O 11. Qd3 Re8 12. Be3 Bd7 13. O-O-O a6 14. Qxh7+ Kf8 15. Bh6 Bxh6+ 16. Qxh6+ Kg8 17. Qh7+ Kf8 18. Qh8# 1-0
+2. d4 Nf6 3. e5 Ne4 4. Nh3 Rg8 5. Bd3 Rh8 6. Bxe4 h6 7. Nc3 Nc6 8. Ne2 Bg7 9. Be3 Rg8 10. Ng3 Rh8 11. O-O Rg8 12. c3 Rh8 13. Kh1 Rg8 14. Bh7 Rh8 15. Bd3 Kf8 16. b4 Rg8 17. b5 Rh8 18. a4 Rg8 19. f4 Rh8 20. Rb1 Rg8 21. Bc1 Rh8 22. Ba3 Rg8 23. fxg5 Rh8 24. Bf5 Rg8 25. bxc6 Rh8 26. g6 Rg8 27. gxf7 Rh8 28. Rf3 Rg8 29. Nh5 Rh8 30. Qf1 Rg8 31. cxb7 Rh8 32. bxa8=Q Kxf7 33. e6+ dxe6 34. Bxe6+ Kxe6 35. Qe2+ Kd7 36. Qe6+ Kxe6 37. Re1+ Kd7 38. Qd5+ Ke8 39. Qf7+ Kd7 40. Qf5+ Kc6 41. Qb5# 1-0

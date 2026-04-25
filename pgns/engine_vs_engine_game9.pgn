@@ -4,8 +4,8 @@
 [Round "?"]
 [White "engine"]
 [Black "engine"]
-[Result "1/2-1/2"]
+[Result "0-1"]
 [FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2"]
 [SetUp "1"]
 
-2... Qf6 3. Rg1 Bc5 4. Rh1 Nh6 5. Rg1 Ng8 6. Rh1 Kd8 7. Rg1 Qf4 8. Bd3 h6 9. Rh1 c6 10. Rg1 a5 11. Rh1 h5 12. Rg1 Nf6 13. Rh1 Re8 14. Rg1 Ra7 15. Rh1 Rh8 16. Rg1 Rf8 17. Rh1 Ke8 18. Rg1 h4 19. Rh1 Qg4 20. Nxe5 Bxf2+ 21. Kxf2 Nxe4+ 22. Bxe4 Qxe4 23. Ng4 h3 24. Re1 Qxe1+ 25. Qxe1+ Kd8 26. Qe5 hxg2 27. Qxb8 Ra8 28. Qxa8 Re8 29. Qxa5+ b6 30. Qxb6+ Ke7 31. Qe3+ Kd6 32. Qxe8 g1=B+ 33. Kxg1 Kc7 34. Qxf7 g5 35. Qg8 d5 36. Qg7+ Kb6 37. Qxg5 Bb7 38. Qd8+ Ka7 39. Qe7 Kb8 40. Qb4 Ka8 41. Nf6 Bc8 42. Qf8 Kb7 43. Qh8 d4 44. Qe8 Bh3 45. Qd8 c5 46. Qe7+ Kc6 47. Qd8 Kb7 48. Qe7+ Kb6 49. Qd8+ 1/2-1/2
+2... Nf6 3. Nxe5 Nxe4 4. d4 d6 5. Bb5+ c6 6. Nxf7 Kxf7 7. Qf3+ Kg8 8. Bc4+ d5 9. Qxe4 dxc4 10. Nc3 Bd6 11. Be3 Bd7 12. O-O-O a5 13. Kb1 a4 14. Rhe1 a3 15. bxa3 Rxa3 16. d5 Rxc3 17. Bd4 Ra3 18. dxc6 bxc6 19. h3 Bb4 20. Rh1 Bc3 21. Bxc3 Rxc3 22. Qe5 Qb6+ 23. Kc1 Ra3 24. Rhe1 Rxa2 25. Qe4 Ra1+ 26. Kd2 Qxf2+ 27. Kc3 Ra4 28. Rh1 Qg3+ 29. Kb2 Qa3+ 30. Kb1 Rb4# 0-1

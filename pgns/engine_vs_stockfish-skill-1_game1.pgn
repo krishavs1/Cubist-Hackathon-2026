@@ -6,4 +6,4 @@
 [Black "stockfish-skill-1"]
 [Result "0-1"]
 
-1. Nf3 d5 2. Nc3 d4 3. Ne4 Qd5 4. Neg5 h6 5. e4 Qc5 6. b4 Qxb4 7. a3 Qd6 8. Bb5+ Nd7 9. e5 Qg6 10. Bd3 Qh5 11. Nh7 Nc5 12. Bb5+ Bd7 13. Bxd7+ Kxd7 14. g4 Qxg4 15. Nxf8+ Rxf8 16. d3 g5 17. Rg1 Qe6 18. Qe2 Qd5 19. Bb2 Ne6 20. O-O-O b6 21. Kb1 f5 22. exf6 Rxf6 23. c4 Qxf3 24. Qe5 Qc6 25. Rgf1 Rh7 26. c5 Ke8 27. cxb6 axb6 28. f3 Qd7 29. f4 Rhf7 30. f5 Nf4 31. Bxd4 Rf8 32. Rfe1 Kf7 33. Rc1 Nd5 34. Ka1 Rd8 35. Red1 c5 36. Bb2 Qc8 37. d4 c4 38. Kb1 Qxf5+ 39. Qxf5 Rxf5 40. Rxc4 g4 41. Rc6 h5 42. Rg1 Ngf6 43. Re1 b5 44. Rc5 Rf3 45. Rxb5 h4 46. Rg1 Nc7 47. Rb7 Nfe8 48. Rxg4 Nd5 49. Rxh4 Ng7 50. Ka2 Rd6 51. Rh7 Kg8 52. Rh4 Nf5 53. Rh5 Kg7 54. Rg5+ Kf7 55. h3 Rf2 56. Rb3 Nfe3 57. Re5 Nd1 58. Kb1 Rd8 59. Bc1 N1c3+ 60. Rxc3 Nxc3+ 61. Ka1 Ra2# 0-1
+1. Nf3 e6 2. Nc3 d5 3. Ne5 f6 4. Nd3 Bd7 5. Nf4 d4 6. Ne4 e5 7. Nd5 c6 8. Ndc3 Bb4 9. Na4 Bf8 10. Nac5 f5 11. Nxb7 Qc7 12. Nbc5 fxe4 13. Nxe4 Nf6 14. Nxf6+ gxf6 15. Rg1 Bg4 16. f3 Bc8 17. Kf2 Bc5 18. Kg3 e4+ 19. f4 Rg8+ 20. Kf2 Qxf4+ 21. Ke1 Qxh2 22. e3 Qg3+ 23. Ke2 Bg4# 0-1

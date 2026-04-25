@@ -86,62 +86,63 @@ Each prototype was scored against **three fixed Stockfish opponents**: **skill 1
 
 ### 4.1 Equations (how anchor Elo is turned into one number)
 
-For one anchor with \(W\) wins, \(L\) losses, and \(D\) draws, let \(n = W+L+D\) and define the **empirical score**
 
-\[
-s = \frac{W + \tfrac{1}{2}D}{n}.
-\]
+For one anchor with $W$ wins, $L$ losses, and $D$ draws, let $n = W+L+D$ and define the **empirical score**
 
-The implementation clamps \(s\) into \((10^{-4},\,1-10^{-4})\) so \(\log\) arguments stay finite.
+$$
+s = \frac{W + \frac{1}{2}D}{n}.
+$$
 
-**Trinomial variance** of the score (treating each game as W / D / L):
+The implementation clamps $s$ into $(10^{-4},\,1-10^{-4})$ so logarithms stay finite.
 
-\[
+**Trinomial variance** of the score (treating each game as W / D / L), with $\mu = s$:
+
+$$
 \operatorname{Var}(s)
-= \frac{W}{n}(1-\mu)^2 + \frac{D}{n}\Bigl(\tfrac{1}{2}-\mu\Bigr)^2 + \frac{L}{n}(0-\mu)^2,
-\qquad \mu = s,
-\]
+= \frac{W}{n}(1-\mu)^2 + \frac{D}{n}\left(\frac{1}{2}-\mu\right)^2 + \frac{L}{n}(0-\mu)^2.
+$$
 
-with **standard error of the mean score**
+**Standard error of the mean score:**
 
-\[
+$$
 \mathrm{SE}(s) = \sqrt{\frac{\operatorname{Var}(s)}{n}}.
-\]
+$$
 
-The **Elo offset** of the candidate relative to the anchor implied by \(s\) is the logistic / Bradley–Terry form used in code:
+The **Elo offset** of the candidate relative to the anchor implied by $s$ (logistic / Bradley–Terry form used in `grade.py`):
 
-\[
-\Delta \;=\; -400\,\log_{10}\!\Bigl(\frac{1}{s}-1\Bigr)
-\;=\; 400\,\log_{10}\!\Bigl(\frac{s}{1-s}\Bigr).
-\]
+$$
+\Delta = -400\,\log_{10}\!\left(\frac{1}{s}-1\right)
+= 400\,\log_{10}\!\left(\frac{s}{1-s}\right).
+$$
 
-The **single-anchor estimate** of the candidate’s absolute rating is
+The **single-anchor estimate** of the candidate’s absolute rating:
 
-\[
-\hat{E} \;=\; E_{\text{anchor}} + \Delta
-\;=\; E_{\text{anchor}} - 400\,\log_{10}\!\Bigl(\frac{1}{s}-1\Bigr).
-\]
+$$
+\hat{E} = E_{\text{anchor}} + \Delta
+= E_{\text{anchor}} - 400\,\log_{10}\!\left(\frac{1}{s}-1\right).
+$$
 
 **Delta method** for the standard error in Elo space:
 
-\[
+$$
 \frac{\mathrm{d}\Delta}{\mathrm{d}s}
 = \frac{400}{\ln 10 \cdot s(1-s)},
 \qquad
-\mathrm{SE}(\hat{E}) = \mathrm{SE}(s)\cdot \Bigl|\frac{\mathrm{d}\Delta}{\mathrm{d}s}\Bigr|.
-\]
+\mathrm{SE}(\hat{E}) = \mathrm{SE}(s)\cdot \left|\frac{\mathrm{d}\Delta}{\mathrm{d}s}\right|.
+$$
 
-With three anchors \(i=1,2,3\), estimates \(\hat{E}_i\) and \(\mathrm{SE}_i\) are combined by **inverse-variance weighting**:
+With three anchors $i=1,2,3$, estimates $\hat{E}_i$ and $\mathrm{SE}_i$ are combined by **inverse-variance weighting**:
 
-\[
+$$
 w_i = \frac{1}{\mathrm{SE}_i^2},
 \qquad
 E_{\text{final}} = \frac{\sum_i w_i \hat{E}_i}{\sum_i w_i},
 \qquad
 \mathrm{SE}_{\text{final}} = \frac{1}{\sqrt{\sum_i w_i}}.
-\]
+$$
 
-**95% confidence interval:** \(E_{\text{final}} \pm 1.96\,\mathrm{SE}_{\text{final}}\).
+**95% confidence interval:** $E_{\text{final}} \pm 1.96\,\mathrm{SE}_{\text{final}}$.
+
 
 ---
 

@@ -88,7 +88,20 @@ Each prototype was scored against **three fixed Stockfish opponents**: **skill 1
 
 ---
 
-## 4.1 Equations (how anchor Elo is turned into one number)
+## 4.1 Statistical Framework (fishtest methodology)
+
+Our evaluation framework adopts the **fishtest methodology**, the official Stockfish testing infrastructure used in competitive chess engine development. This framework is peer-reviewed and standard across the chess engine community. It comprises:
+
+- **Bradley–Terry logistic model** for converting match scores to Elo ratings
+- **Trinomial variance** (accounts for three outcomes: win, draw, loss—not just binary win/loss)
+- **Delta method** for error propagation from score-space to Elo-space
+- **Inverse-variance weighting** to combine estimates across multiple anchor strength levels
+
+Using an established, externally-validated methodology ensures our ratings are comparable to published benchmarks and defensible against scrutiny.
+
+---
+
+## 4.2 Equations (how anchor Elo is turned into one number)
 
 For one anchor with $W$ wins, $L$ losses, and $D$ draws, let $n = W+L+D$ and define the **empirical score**
 
@@ -149,7 +162,7 @@ $$
 
 ---
 
-### 4.2 Stockfish anchor results → combined Elo
+### 4.3 Stockfish anchor results → combined Elo
 
 Each cell is **W–L–D** over **12 games** from the **engine’s** perspective (wins / losses / draws against that Stockfish skill level).
 

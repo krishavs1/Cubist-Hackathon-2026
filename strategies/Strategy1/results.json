@@ -2,49 +2,49 @@
   "name": "Strategy1",
   "anchors": {
     "skill_1": {
-      "wins": 11,
-      "losses": 1,
-      "draws": 0,
+      "wins": 3,
+      "losses": 7,
+      "draws": 2,
       "total": 12,
       "base_elo": 1000.0
     },
     "skill_3": {
-      "wins": 10,
-      "losses": 2,
-      "draws": 0,
+      "wins": 2,
+      "losses": 8,
+      "draws": 2,
       "total": 12,
       "base_elo": 1200.0
     },
     "skill_5": {
-      "wins": 3,
-      "losses": 5,
-      "draws": 4,
+      "wins": 0,
+      "losses": 9,
+      "draws": 3,
       "total": 12,
       "base_elo": 1500.0
     }
   },
   "cross_validation": {
     "test-driven-development": {
-      "wins": 10,
+      "wins": 5,
       "losses": 0,
-      "draws": 0,
+      "draws": 5,
       "total": 10
     },
     "chess-ttt": {
-      "wins": 10,
+      "wins": 8,
       "losses": 0,
-      "draws": 0,
+      "draws": 2,
       "total": 10
     },
-    "OneShotOpus": {
-      "wins": 4,
-      "losses": 0,
-      "draws": 6,
+    "SimpleOneShot_bot": {
+      "wins": 0,
+      "losses": 7,
+      "draws": 3,
       "total": 10
     }
   },
-  "elo": 1447.315109934728,
-  "elo_ci_lower": 1318.8225360691872,
-  "elo_ci_upper": 1575.807683800269,
-  "graded_at": "2026-04-25T13:22:48.852522"
+  "elo": 1013.7788131180728,
+  "elo_ci_lower": 901.7511437522342,
+  "elo_ci_upper": 1125.8064824839114,
+  "graded_at": "2026-04-25T11:31:33.729978"
 }

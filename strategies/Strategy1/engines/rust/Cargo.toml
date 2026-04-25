@@ -1,0 +1,20 @@
+[package]
+name = "strategy1-rust"
+version = "0.1.0"
+edition = "2021"
+description = "Rust port of the Strategy1 Darwinian + Reflexion chess engine"
+
+[dependencies]
+# Pinned to 0.26 so we share lockfile resolution with the teammate's
+# `src/rust-engine/` crate and use a known-working API.
+shakmaty = "0.26"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+[[bin]]
+name = "strategy1-rust"
+path = "src/main.rs"

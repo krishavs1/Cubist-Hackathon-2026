@@ -1,9 +1,0 @@
-[Event "?"]
-[Site "?"]
-[Date "2026.04.24"]
-[Round "36"]
-[White "stockfish-skill-1"]
-[Black "engine"]
-[Result "1-0"]
-
-1. e4 Nc6 2. d4 Nf6 3. Nf3 Nxe4 4. Bb5 Nb4 5. Be2 e6 6. a3 Nc6 7. O-O Qf6 8. d5 exd5 9. Bd3 Bxa3 10. Nxa3 Nxf2 11. Qe2+ Ne4 12. c4 Nd4 13. Qe3 Nxf3+ 14. Rxf3 Qd6 15. Bxe4 d4 16. Qd3 Qe5 17. Bd2 d6 18. Nc2 Bg4 19. Re1 Bxf3 20. Qxf3 O-O 21. Bxb7 Qf6 22. Bxa8 Qh4 23. Be4 Kh8 24. Bc6 d3 25. Ne3 Qe7 26. Nd5 Qh4 27. Nf4 Kg8 28. b4 d5 29. cxd5 Rd8 30. Qxd3 h6 31. Qe4 a6 32. Qe3 Rf8 33. b5 axb5 34. h3 Rd8 35. Rf1 Qf6 36. Qf2 Qd6 37. Re1 Qf6 38. Be3 Qc3 39. Ne2 Qe5 40. Bf4 Qf6 41. Qg3 b4 42. Bxc7 Rc8 43. Be5 Qg5 44. Nd4 Qxg3 45. Bxg3 b3 46. Kh2 b2 47. Rb1 Rf8 48. Bf4 g5 49. d6 gxf4 50. d7 Rd8 51. Nb5 Kh8 52. h4 Kh7 53. Rxb2 Kh8 54. Nd4 Kg8 55. Nf3 Rf8 56. Nd4 Rd8 57. Ra2 f3 58. g4 f2 59. Kg2 f1=Q+ 60. Kxf1 Rf8 61. Ra8 Rd8 62. Rxd8+ Kh7 63. Rb8 Kg6 64. Nf5 h5 65. Re8 hxg4 66. h5+ Kxf5 67. Ke2 Kf6 68. Re3 Kg7 69. Ra3 Kh6 70. Rg3 Kxh5 71. Kd2 Kh4 72. Rc3 Kh5 73. Rc5+ Kh6 74. Rc3 Kh7 75. d8=Q Kg7 76. Rc5 g3 77. Rh5 Kg6 78. Qg5# 1-0

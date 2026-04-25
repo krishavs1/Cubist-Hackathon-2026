@@ -221,7 +221,6 @@ Net = Σ (wins − losses) over the **three** opponents in §5.2 (draws omitted)
 | **test-driven-development** | 863 | −13 |
 | **chess-ttt** | 779 | −25 |
 
-*OneShotOpus calibrated Elo from `strategies/OneShotOpus/results.json` (same `elo-test/` protocol as §4).*
 
 ---
 
@@ -260,7 +259,7 @@ TDD and chess-ttt are the cheapest to optimize because their search stacks have 
 | TDD | 863 | ~1,100–1,300 | +240–440 |
 | chess-ttt | 779 | ~1,000–1,250 | +220–470 |
 
-Strategy1's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed — a compiled Rust rewrite would push the ceiling significantly higher.
+Strategy1's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed, a compiled Rust rewrite would push the ceiling significantly higher.
 
 ---
 

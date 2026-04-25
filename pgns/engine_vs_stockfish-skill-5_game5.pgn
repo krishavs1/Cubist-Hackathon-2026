@@ -4,8 +4,8 @@
 [Round "?"]
 [White "engine"]
 [Black "stockfish-skill-5"]
-[Result "0-1"]
+[Result "1/2-1/2"]
 [FEN "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]
 [SetUp "1"]
 
-2. Nf3 d6 3. Nc3 c5 4. Bd3 Be7 5. Kf1 Nf6 6. e5 dxe5 7. Nxe5 Nbd7 8. Qe2 O-O 9. Nc4 Nb8 10. Ne5 Nbd7 11. Nc4 Rb8 12. Ne4 a6 13. Qf3 h6 14. Ned6 Bxd6 15. Nxd6 Ne5 16. Nxf7 Nxf7 17. Qf4 Ra8 18. Qc4 Bd7 19. Qxc5 Rc8 20. Qd4 e5 21. Qe3 Bc6 22. Bg6 Nd5 23. Bxf7+ Rxf7 24. Qxe5 Re7 25. Qf5 Qe8 26. f3 Re1+ 27. Kf2 Qe2+ 28. Kg3 Rf8 29. Rxe1 Qxe1+ 30. Kg4 Rxf5 31. Kxf5 Ne7+ 32. Kg4 g5 33. g3 Qe6+ 34. Kh5 Be8# 0-1
+2. Nf3 d6 3. Bb5+ Nd7 4. O-O c6 5. Bd3 Ngf6 6. Re1 e5 7. Bc4 g6 8. d4 h6 9. dxe5 dxe5 10. Bd3 Bd6 11. Ba6 Qe7 12. Bc4 b5 13. Bd3 a6 14. Bf1 Bc5 15. Bd3 Ba7 16. Bf1 O-O 17. Bxh6 Ng4 18. Bxf8 Kxf8 19. Re2 Ndf6 20. Qd3 Nxf2 21. Rxf2 Ng4 22. Qc3 Bb7 23. Nfd2 Nxf2 24. Qb3 Nd1+ 25. Kh1 Nf2+ 26. Kg1 Ng4+ 27. Kh1 Nf2+ 1/2-1/2

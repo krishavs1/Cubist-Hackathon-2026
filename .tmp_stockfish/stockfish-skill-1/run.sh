@@ -1,7 +1,7 @@
 #!/bin/bash
 python3 -c "
 import sys, subprocess, threading
-p = subprocess.Popen(['/opt/homebrew/bin/stockfish'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+p = subprocess.Popen(['/usr/local/bin/stockfish'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 def relay(src, dst, inject=None):
     try:
         for line in src:

@@ -188,26 +188,26 @@ The Searcher's failsafe guarantees the engine never hangs and never returns an i
 
 The first tournament ran all 6 personalities in a round-robin to determine the internal Champion. Results (2 games/pair, 50ms/move, Bayesian Elo):
 
-| Rank | Personality | Elo | W / D / L | Win Rate |
-|------|-------------|-----|-----------|----------|
-| 🥇 1 | `fortress` | 1226 | 3 / 2 / 1 | 66.7% |
-| 2 | `material_hawk` | 1199 | 1 / 4 / 1 | 50.0% |
-| 3 | `balanced` | 1189 | 2 / 1 / 3 | 41.7% |
-| 4 | `aggressive_attacker` | 1185 | 1 / 3 / 2 | 41.7% |
+| Rank | Personality | Elo | W / D / L | Result |
+|------|-------------|-----|-----------|--------|
+| 🥇 1 | `positional_grinder` | 1253 | 4 / 6 / 0 | **Undefeated** |
+| 2 | `fortress` | 1221 | 4 / 4 / 2 | — |
+| 3 | `material_hawk` | 1196 | 2 / 6 / 2 | — |
+| 4 | `balanced` | 1195 | 3 / 3 / 4 | — |
+| 5 | `aggressive_attacker` | 1168 | 2 / 4 / 4 | — |
+| 6 | `pawn_storm` | 1166 | 3 / 1 / 6 | — |
 
-**Internal champion: `fortress`** — the defensive, risk-averse evaluator that simplifies when ahead and applies maximum king-safety penalties. It converts winning positions cleanly and avoids the speculative piece sacrifices that caused `aggressive_attacker` to blunder.
+**Internal champion: `positional_grinder`** — the only personality to go undefeated across all 30 games. It won through sustained center control and king safety rather than tactical fireworks, accumulating small positional advantages that the search converted reliably.
 
-**Why `fortress` won internally**: At fast time controls, the search can't validate whether an aggressive sacrifice will succeed. `fortress` weights king safety so heavily that it refuses bad speculative attacks by default, which is exactly correct when search depth is limited. `aggressive_attacker` found winning attacks when they existed but accepted avoidable king exposure throughout the game.
+**Why `positional_grinder` won**: Slow strategic play is uniquely well-suited to search-based engines. Positional advantages (controlling key squares, restricting enemy piece mobility) compound over many moves and don't require the engine to see deep tactical sequences to benefit from them. `aggressive_attacker` and `pawn_storm` both generated sharp positions that needed deep validation the search couldn't always provide in time.
 
 ### Phase 2 — Champion Deployed for External Competition
 
-**`fortress` was selected by the tournament — not by us.** This is the core point of the Darwinian approach: the competition decides, the team doesn't. `engine/run.sh` is hardcoded to launch `fortress` because that is what the internal Elo standings produced. If a future tournament run produces a new champion, only one line in `run.sh` changes.
-
-`fortress` won because its risk-averse, king-safety-first judgment consistently converts winning positions rather than gambling on speculative attacks. At the fast time controls used in the hackathon arena, the search can't always validate whether an aggressive sacrifice will work — `fortress` refuses those positions by default, which is the correct policy under uncertainty.
+**`positional_grinder` was selected by the tournament — not by us.** This is the core point of the Darwinian approach: the competition decides, the team doesn't. `engine/run.sh` is hardcoded to launch `positional_grinder` because that is what the full internal Elo standings produced (Elo 1253, only undefeated personality across 30 games). If a future tournament run produces a new champion, only one line in `run.sh` changes.
 
 ### Phase 3 — External Competition Against Other Strategies
 
-Strategy1 (`fortress` personality, v2 search core) was run against all 4 rival strategies (4 games each, 200ms/move, alternating colors):
+Strategy1 (`positional_grinder` personality, v2 search core) was run against all 4 rival strategies (4 games each, 300ms/move, alternating colors):
 
 | Rival Strategy | W | D | L | Notes |
 |----------------|---|---|---|-------|
@@ -219,15 +219,15 @@ Strategy1 (`fortress` personality, v2 search core) was run against all 4 rival s
 
 **Key observation — megaprompt**: All 4 games ended in draws. This is not a failure — draws indicate the two engines are approximately matched in strength. The megaprompt strategy, which pre-loaded heavy context and API documentation, appears to have produced the most robust engine of the rival set. Full integration testing with more games will clarify whether Strategy1 holds an edge.
 
-**Key observation — tdd / toy-to-scale / zero-shot**: Strategy1 won every game, both as White and as Black. The alternating 1-0 / 0-1 / 1-0 / 0-1 pattern confirms `fortress` dominates from both sides of the board — this is not a white-advantage artifact.
+**Key observation — tdd / toy-to-scale / zero-shot**: Strategy1 won every game, both as White and as Black, confirming `positional_grinder` dominates from both sides of the board.
 
 ### What the Tournament Proved About the Architecture
 
 The Darwinian loop worked exactly as designed:
 1. AI generated 7 distinct personalities with different evaluation philosophies
-2. Automated competition — not human preference — identified `fortress` as champion
-3. `fortress` was deployed directly to external competition without modification
-4. External results validated the selection: 12W / 4D / 0L against rival strategies
+2. Automated competition — not human preference — identified `positional_grinder` as champion (the only undefeated personality)
+3. `positional_grinder` was deployed directly to external competition without modification
+4. External results validated the selection: undefeated across all 16 games against rival strategies
 
 **The point the judges should take away**: We didn't pick our chess playing style — we built a system that picks its own playing style based on empirical results. The team's role was to design the arena and define the fitness criteria, not to decide which philosophy of chess is best. That is what makes this an AI workflow rather than a chess project.
 

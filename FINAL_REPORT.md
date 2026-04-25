@@ -1,6 +1,7 @@
 # Four-Engine Chess Elo Evaluation — Final Report
 
-> Scope: calibrate and compare four chess engines — `SimpleOneShot_bot`, `test-driven-development`, `chess-ttt`, and `Strategy1` — within a single repeatable arena, recover an absolute Elo rating for each, and cross-check those ratings against head-to-head play. Includes the full equations used, what the cross-validation numbers actually mean (and don't mean), and the harness setup that made every engine reproducibly launchable on the grading machine.
+> **Scope (current):** calibrate and compare four engines — **`Strategy1`**, **`OneShotOpus`**, **`test-driven-development`**, and **`chess-ttt`** — in the shared `elo-test/` arena, report absolute Elo from Stockfish anchors, and cross-check with head-to-head play. This revision replaces an earlier edition that used `SimpleOneShot_bot` instead of `OneShotOpus` and predates the **Strategy1** upgrade (PeSTO + persistent TT + time budget fixes).  
+> **Companion:** `FINAL_REPORT_4ENGINE.md` is a concise duplicate of the leaderboard, matrix, and engine blurbs for the same four engines.
 
 ---
 
@@ -8,12 +9,12 @@
 
 | Engine | Location | Entry point | Short description |
 | --- | --- | --- | --- |
-| `SimpleOneShot_bot` | `SimpleOneShot_bot/` | `engine/run.sh` | Negamax-alphabeta with PVS, iterative deepening, transposition table, quiescence, null-move pruning, LMR, check extensions, killer + history heuristics, tapered PeSTO eval. |
-| `Strategy1` | `Strategy1/` | `engine/run.sh` | Darwinian AI engine: shared modern search core (PVS + TT + null-move + LMR + killers + history + aspiration windows + delta-pruned quiescence) with a swappable evaluator. The default personality `fortress` (massive king-safety weighting + trade-down bonus when ahead) is what won the internal round-robin tournament across seven Claude-generated personalities. |
-| `test-driven-development` | `src/test-driven-development/` | `engine/run.sh` | TDD-authored negamax engine with basic ordering and PST eval. |
-| `chess-ttt` | `ttt-iteration_bot/chess-ttt/` | `engine/run.sh` | Iteration from the tic-tac-toe / checkers lineage (search-agnostic core, extended for chess). |
+| `Strategy1` | `Strategy1/` | `engine/run.sh` | Darwinian MVE: **PVS**, iterative deepening, aspiration windows, **TT**, null-move, **LMR**, killers, history, delta-pruned **quiescence**. Arena build uses **`pesto`** (tapered PeSTO PSTs), **persistent `Searcher`** (TT/killers/history survive between moves; cleared on `ucinewgame`), and tightened **movetime** usage (~86% soft / ~97% hard). |
+| `OneShotOpus` | `OneShotOpus/` | `engine/run.sh` | One-shot Opus prompt: negamax + TT + quiescence + null-move + LMR + killers + history + tapered **PeSTO**; solid UCI time handling. |
+| `test-driven-development` | `src/test-driven-development/` | `engine/run.sh` | TDD-authored engine: iterative deepening, lighter eval and search than the top two. |
+| `chess-ttt` | `ttt-iteration_bot/chess-ttt/` | `engine/run.sh` | Lineage from tic-tac-toe → checkers → chess; minimal chess-specific search/eval. |
 
-All four engines speak UCI over stdin/stdout and are discovered by the grader via the `<dir>/engine/run.sh` convention. Strategy1 and SimpleOneShot live at the repo root and are picked up by `grade.py`'s `DIRECT_ENGINES` list; the other two are scanned out of `src/` and `ttt-iteration_bot/` respectively.
+Discovery: `elo-test/grade.py` registers **`DIRECT_ENGINES`** at repo root (`Strategy1`, `OneShotOpus`, `SimpleOneShot_bot`, …) and scans **`ENGINE_ROOTS`** (`src/`, `ttt-iteration_bot/`, …) for `<name>/engine/run.sh`.
 
 ---
 
@@ -22,17 +23,17 @@ All four engines speak UCI over stdin/stdout and are discovered by the grader vi
 Defined in `elo-test/arena.py` and called by `elo-test/grade.py`.
 
 - **Resource limits per engine process:** `RLIMIT_AS = 512 MB` (virtual memory cap enforced via `resource.setrlimit` in a `preexec_fn`).
-- **Move time cap:** `movetime = 80 ms` per move for this run. A **hard wall-clock ceiling of 2.0 s** per move is enforced by the arena regardless of what the engine is sent; overshooting = lost on time.
+- **Move time cap:** `movetime = 80 ms` per move for the runs summarized below. A **hard wall-clock ceiling of 2.0 s** per move is enforced by the arena regardless of what the engine is sent; overshooting = lost on time.
 - **Opening book:** 8 balanced opening positions (startpos, Sicilian, French, Modern, Open Game, English, Queen's Gambit, Caro-Kann). Each pair cycles through them.
 - **Color alternation:** engines swap colors every game (odd games → A is White, even → A is Black) so opening color bias cancels over enough games.
-- **Per-game outcomes:** the arena prints `Game N/M: [W|B|D] <result>` (letter is the *winner's color*, `D` = draw) and a final `Final: {W}W-{L}L-{D}D` summary from A's perspective.
+- **Per-game outcomes:** the arena prints `Game N/M: [W|B|D] <result>` (letter is the *winner's color*, `D` = draw) and a final `Final: {W}W-{L}L-{D}D` summary from **engine A’s** perspective.
 - **Memory isolation:** PGNs are written under `pgns/`; engines that crash or return illegal moves are logged but do not poison other matchups.
 
 ---
 
 ## 3. Stockfish anchors (why calibration is absolute, not relative)
 
-The grader does *not* start everyone at 1200 and let them drift. Instead it reaches for an external ground truth: three Stockfish skill levels pegged to hand-chosen Elo values.
+The grader does *not* start everyone at 1200 and let them drift. Instead it uses three Stockfish skill levels pegged to chosen Elo values.
 
 ```python
 ANCHORS = {
@@ -42,7 +43,7 @@ ANCHORS = {
 }
 ```
 
-These base Elos are the scaffolding — the `StockfishWrapper` in `grade.py` spins up a Stockfish process and injects `setoption name Skill Level value <n>` right after `uci`. Each candidate plays one matchup against each anchor.
+Each candidate plays one matchup block per anchor. `StockfishWrapper` injects `setoption name Skill Level value <n>` after `uci`.
 
 ---
 
@@ -78,8 +79,6 @@ This is the signed Elo difference of the candidate *relative to the opponent*. P
 
 $$\hat{E}_i \;=\; E_{\mathrm{anchor},i} + \Delta\mathrm{Elo}_i$$
 
-For example, scoring 0.25 vs the 1200-Elo anchor gives ΔElo = `-400·log10(1/0.25 − 1) = -400·log10(3) ≈ -190.8`, so the candidate is at about **1009 Elo** on that one anchor.
-
 ### 4.4. Propagating the error from score-space to Elo-space
 
 Elo is nonlinear in score, so we use the delta method:
@@ -87,8 +86,6 @@ Elo is nonlinear in score, so we use the delta method:
 $$\frac{dE}{ds} = \frac{400}{\ln(10)\cdot s\,(1 - s)}$$
 
 $$\mathrm{SE}(\hat{E}_i) = \mathrm{SE}(s) \cdot \frac{400}{\ln(10)\cdot s\,(1-s)}$$
-
-This gives a per-anchor uncertainty that correctly inflates when scores approach 0 or 1 (where a single extra win can swing Elo by hundreds of points).
 
 ### 4.5. Combining multiple anchors (inverse-variance weighting)
 
@@ -98,44 +95,29 @@ $$w_i = \frac{1}{\mathrm{SE}_i^2}, \qquad E_{\text{final}} = \frac{\sum_i w_i \h
 
 $$\mathrm{SE}_{\text{final}} = \frac{1}{\sqrt{\sum_i w_i}}, \qquad \text{95% CI} = E_{\text{final}} \pm 1.96 \cdot \mathrm{SE}_{\text{final}}$$
 
-Inverse-variance weighting is optimal (minimum-variance unbiased) when the estimates are independent and approximately Gaussian. The practical effect: an anchor where the engine went 0-12-0 gets almost no weight because `s·(1-s)` blows up the SE; an anchor with a mix of outcomes gets most of the weight.
-
 ---
 
 ## 5. Cross-validation — what it does and does NOT do
 
-After calibration, `grade.py --cross-validate` runs head-to-head matchups between every pair of registered engines. **Critically, it does not update any engine's `elo`, `elo_ci_lower`, or `elo_ci_upper`.** It only writes into the `cross_validation` field of each engine's `results.json`:
+After calibration, `grade.py --cross-validate` runs head-to-head matchups between pairs of engines. **It does not update** any engine's `elo`, `elo_ci_lower`, or `elo_ci_upper`. It only writes the `cross_validation` field in each engine's `results.json`.
 
-```json
-"cross_validation": {
-  "chess-ttt": {"wins": 9, "losses": 0, "draws": 1, "total": 10}
-}
-```
-
-The Elo comes **entirely** from the Stockfish anchors (§4). Cross-validation is a **sanity check**: given the calibrated Elos, the logistic model predicts each pair's score as
-
-$$E_A = \frac{1}{1 + 10^{(E_B - E_A)/400}}$$
-
-We then ask whether the observed score matches. Large discrepancies flag either (a) a miscalibrated engine, (b) non-transitive pairings (A's style exploits B but not C), or (c) small-sample noise — at 10 games per pair the 1-σ noise is already ±150 Elo in the implied-gap space.
-
-In other words: **the arena is a validation tool, not a ladder**. No ratings drift.
+The Elo comes **entirely** from the Stockfish anchors (§4). Cross-validation is a **sanity check** on relative strength and style. At **10 games per pair**, implied gaps have large sampling error (often ±150 Elo or more near 50% scores).
 
 ---
 
-## 6. Calibration and cross-validation parameters for this run
+## 6. Calibration and cross-validation parameters (this snapshot)
 
 | Parameter | Value |
 | --- | --- |
-| Candidates | `SimpleOneShot_bot`, `Strategy1`, `test-driven-development`, `chess-ttt` |
+| Engines in leaderboard | `Strategy1`, `OneShotOpus`, `test-driven-development`, `chess-ttt` |
 | Stockfish anchors | skill 1 (1000), skill 3 (1200), skill 5 (1500) |
-| Games per anchor | 12 (36 per candidate × 4 candidates = **144 calibration games**) |
-| Cross-validation pairs | all 6 unordered pairs |
-| Games per cross-val pair | 10 (60 **cross-validation games**) |
+| Games per anchor (full calibration) | **12** per anchor → **36** games per engine when all three anchors are run |
+| Cross-validation | **10** games per unordered pair (among engines selected in a `--only` run) |
 | Movetime per move | **80 ms** |
 | Hard wall clock per move | 2.0 s |
 | Memory ceiling per engine | 512 MB |
-| Total arena games | **204** |
-| Wall clock | ≈30 min for the full sweep |
+
+**Note:** `Strategy1` anchors and Elo were **recomputed** after the engine upgrade (same protocol). `OneShotOpus`, `test-driven-development`, and `chess-ttt` anchor blocks in `results.json` may carry **older `graded_at` timestamps**; cross-validation involving **Strategy1** was re-run so Strategy1 ↔ others H2H counts match the matrix in §8.
 
 ---
 
@@ -143,113 +125,84 @@ In other words: **the arena is a validation tool, not a ladder**. No ratings dri
 
 ### 7.1. The problem
 
-Every engine's `engine/run.sh` follows the same pattern: prefer `$REPO_ROOT/.venv/bin/python` if it exists, otherwise fall back to bare `python3`. That fallback is fragile — on the grading machine, the `python3` on `PATH` resolved to an unrelated virtualenv (`SongIdentifier-…`) which does not have `python-chess` installed. The first cross-validation pass died on `ModuleNotFoundError: No module named 'chess'` for three of the four engines, and the arena reported them as init failures.
-
-A first attempt to work around this by short-circuiting the fallback to `/usr/bin/python3` ran into a separate problem: the system Python on this machine is 3.9, and `src/test-driven-development/uci/adapter.py` uses `str | None` PEP 604 syntax that requires Python ≥ 3.10. Picking any single hard-coded interpreter would break at least one engine.
+Engines must launch with a Python that has **`python-chess`** and (for some codebases) **Python ≥ 3.10**. Using system `python3` or the wrong venv produced `ModuleNotFoundError: No module named 'chess'` or syntax errors.
 
 ### 7.2. The fix
 
-Created `$REPO_ROOT/.venv` once, with an interpreter that satisfies every engine simultaneously:
+Repo-root `.venv` with `python-chess`, and `grade.py` invoking `arena.py` via **`sys.executable -u`**. Each engine’s `engine/run.sh` should prefer **`$REPO_ROOT/.venv/bin/python`** (several engines also use **`python -u`** for unbuffered UCI).
 
-```bash
-# from repo root
-/usr/local/bin/python3 -m venv .venv         # 3.11.4 — supports `X | None` syntax
-.venv/bin/pip install python-chess            # required by all four engines
-```
+### 7.3. UCI smoke identifiers (examples)
 
-After this, every engine's existing `run.sh` takes the `.venv` branch unmodified — no per-engine edits required. Verified by sending `uci` / `quit` to each of the four `engine/run.sh` files independently:
-
-| Engine | `id name` line |
+| Engine | Example `id name` |
 | --- | --- |
-| `Strategy1/engine/run.sh` | `id name CubistDarwin-fortress` |
-| `SimpleOneShot_bot/engine/run.sh` | `id name SimpleOneShot 1.0` |
-| `src/test-driven-development/engine/run.sh` | `id name HackathonEngine` |
-| `ttt-iteration_bot/chess-ttt/engine/run.sh` | `id name chess-from-checkers` |
+| `Strategy1/engine/run.sh` | `CubistDarwin-pesto` (when launched with `--heuristic pesto`) |
+| `OneShotOpus/engine/run.sh` | `OneShotOpus 1.0` |
+| `src/test-driven-development/engine/run.sh` | (engine’s declared name) |
+| `ttt-iteration_bot/chess-ttt/engine/run.sh` | (engine’s declared name) |
 
-All four reach `uciok` cleanly under the arena's `RLIMIT_AS = 512 MB` preexec.
+### 7.4. Stockfish
 
-### 7.3. Stockfish — also installed during setup
-
-Stockfish was missing from `PATH`. `grade.py`'s `ensure_stockfish()` calls `brew install stockfish` automatically; on this machine that completed (Stockfish 18 in `/usr/local/Cellar/stockfish/18`) and the binary became available at `/usr/local/bin/stockfish`. The `StockfishWrapper` in `grade.py` then writes a temp `run.sh` that pipes UCI to the Stockfish binary while injecting `setoption name Skill Level value <n>` after `uci`, so each anchor is just another UCI subprocess from the arena's perspective.
-
-### 7.4. Why this matters for the report
-
-Without these two setup steps, the cross-validation matrix would have been mostly init failures and the calibration column for the affected engines would have been forfeit-dominated (a saturating 0-12-0 against every anchor, which the delta method blows up into a useless ±300 Elo CI). The numbers in §8 are honest playing-strength signal because every subprocess actually launched and played.
+`grade.py` `ensure_stockfish()` locates or installs Stockfish; skill levels are set through the wrapper’s UCI shim.
 
 ---
 
-## 8. Final results
+## 8. Final results (current four engines)
 
 ### 8.1. Calibration table
 
 | Rank | Engine | Elo | 95% CI | vs SF-1 (W-L-D) | vs SF-3 | vs SF-5 |
 | ---: | --- | ---: | --- | :---: | :---: | :---: |
-| 1 | `SimpleOneShot_bot` | **1195** | [1087, 1303] | 9-2-1 | 4-6-2 | 0-8-4 |
-| 2 | `Strategy1` | **1014** | [902, 1126] | 3-7-2 | 2-8-2 | 0-9-3 |
+| 1 | `Strategy1` | **1447** | [1319, 1576] | 11-1-0 | 10-2-0 | 3-5-4 |
+| 2 | `OneShotOpus` | **1212** | [1097, 1327] | 10-2-0 | 2-7-3 | 2-7-3 |
 | 3 | `test-driven-development` | **863** | [737, 990] | 2-6-4 | 0-10-2 | 0-11-1 |
 | 4 | `chess-ttt` | **779** | [615, 943] | 1-8-3 | 0-12-0 | 0-11-1 |
 
-`SimpleOneShot_bot` is the only engine in this set that plays competitively with Stockfish skill 3; it *beats* SF-1 and splits SF-3. `Strategy1` is the only other engine that wins games against SF-3 at all (2 wins, 2 draws). The bottom two engines saturate at 0-vs-anything past skill 1.
+**Strategy1** at 80 ms now scores heavily against SF-1 and SF-3; **SF-5** still anchors the high end and pulls the combined estimate down from the mid-anchor ceiling. **OneShotOpus** remains clearly above TDD and chess-ttt but below Strategy1 on this snapshot.
 
-### 8.2. Cross-validation matrix (A-perspective, 10 games per pair)
+### 8.2. Cross-validation matrix (row vs column, 10 games; row’s W-L-D)
 
-Reading row A vs column B as `W-L-D` for A:
-
-|                             | SimpleOneShot | Strategy1 | TDD | chess-ttt |
+| | OneShotOpus | Strategy1 | TDD | chess-ttt |
 | --- | :---: | :---: | :---: | :---: |
-| `SimpleOneShot_bot`         |    —     | 7-0-3 | 9-1-0 | 9-0-1 |
-| `Strategy1`                 | 0-7-3 |    —     | 5-0-5 | 8-0-2 |
-| `test-driven-development`   | 1-9-0 | 0-5-5 |    —     | 5-0-5 |
-| `chess-ttt`                 | 0-9-1 | 0-8-2 | 0-5-5 |    —     |
+| **OneShotOpus** | — | 0-4-6 | 8-0-2 | 10-0-0 |
+| **Strategy1** | 4-0-6 | — | 10-0-0 | 10-0-0 |
+| **TDD** | 0-8-2 | 0-10-0 | — | 5-0-5 |
+| **chess-ttt** | 0-10-0 | 0-10-0 | 0-5-5 | — |
 
-The cross-val ranking matches the calibration ranking exactly: the row sums (W − L) are SimpleOneShot +25, Strategy1 +6, TDD −13, chess-ttt −18. No non-transitive surprises (e.g. nobody loses to a calibrated-weaker engine).
+**Ordinal:** calibration says **Strategy1 > OneShotOpus > TDD > chess-ttt**. Cross-val agrees on **Strategy1 vs OneShotOpus** (Strategy1 ahead), **OneShotOpus vs the bottom two**, and **TDD vs chess-ttt** (TDD ahead on wins, 5-0-5).
 
-### 8.3. Prediction vs observation
+### 8.3. Prediction vs observation (illustrative)
 
-Using $E_A = 1/(1 + 10^{(E_B - E_A)/400})$ with the calibrated Elos above, and the implied Elo gap from an observed score of $400\cdot\log_{10}((1-s)/s)$:
+Using $E_A = 1/(1 + 10^{(E_B - E_A)/400})$ with the §8.1 point Elos:
 
-| Pair (A vs B) | Cal. ΔE (B−A) | Predicted $s_A$ | Observed $s_A$ | Implied ΔE from play | Residual |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Strategy1 vs SimpleOneShot  | +181 | 0.261 | 0.150 |  +301 |  +120 |
-| TDD vs SimpleOneShot        | +332 | 0.129 | 0.100 |  +382 |   +50 |
-| chess-ttt vs SimpleOneShot  | +416 | 0.084 | 0.050 |  +512 |   +96 |
-| TDD vs Strategy1            | +151 | 0.295 | 0.250 |  +191 |   +40 |
-| chess-ttt vs Strategy1      | +235 | 0.205 | 0.100 |  +382 | **+147** |
-| TDD vs chess-ttt            |  −84 | 0.619 | 0.750 |  −191 |  −107 |
+| Pair (row vs col) | Cal. Δ (col − row) | Predicted $s_{\text{row}}$ | Observed $s_{\text{row}}$ |
+| --- | ---: | ---: | ---: |
+| Strategy1 vs OneShotOpus | −235 | ~0.79 | 0.70 |
+| OneShotOpus vs TDD | −349 | ~0.89 | 0.90 |
+| Strategy1 vs TDD | −584 | ~0.96 | 1.00 |
+| TDD vs chess-ttt | +84 | ~0.38 | 0.50 |
 
-**Interpretation:**
+Strategy1 vs OneShotOpus: observed score is **slightly below** the logistic prediction from anchor-only Elos — plausible for **10 games** and style variance. Shutouts (10-0) are informative but inflate implied gaps; treat as “large edge,” not a precise Elo difference.
 
-- Three of six residuals are within the 1-σ noise of a 10-game sample (≈150 Elo near s=0.5), so the calibration is broadly consistent with head-to-head play.
-- The two largest residuals both tilt Strategy1's way: it beats `chess-ttt` 8-0-2 instead of the predicted 79.5%, and it never wins against SimpleOneShot but draws 30% (better than the predicted 26.1%). That suggests `Strategy1`'s true strength is probably near the **top** of its CI rather than its point estimate — i.e. closer to 1100 Elo than 1014. The mechanism is the standard one: Strategy1 lost most games against all three Stockfish anchors (3-7-2, 2-8-2, 0-9-3), and the deeper an engine sinks against an anchor the more the logit saturates and pulls its point estimate down.
-- `TDD` overperforms vs `chess-ttt` by 107 Elo (5-0-5 instead of the predicted 38.1% loss), but underperforms vs `Strategy1` by ~40 Elo. The pair-specific style noise here is well within the noise floor of a 10-game sample.
+### 8.4. Do the matches change the Elos?
 
-### 8.4. What this means for "do the matches change the Elos?"
-
-**No.** The final Elos in §8.1 are fixed by the Stockfish calibration; the cross-validation numbers in §8.2 are diagnostic only. If I wanted a ladder that *does* update after head-to-head games, the right move would be a Bayesian-updating implementation (e.g. BayesElo / Ordo / Davidson trinomial likelihood) that takes the calibration priors and conditions on the cross-validation outcomes. That's not what `grade.py` does today.
+**No.** §8.1 Elos come only from anchor calibration. §8.2 is diagnostic.
 
 ---
 
-## 9. Timeline of what I did
+## 9. Timeline (high level)
 
-1. **Engine discovery.** Extended `grade.py` with a `DIRECT_ENGINES` list so top-level engine folders (`SimpleOneShot_bot/`, `Strategy1/`) are scanned the same way `src/<name>/` and `ttt-iteration_bot/<name>/` are. Added an `--only` filter for restricting a run to a comma-separated set of engine names.
-2. **Resilient writes.** `results.json` is now persisted after *every* Stockfish anchor matchup completes (not just at the end), so an interrupted run never loses more than one anchor's worth of games.
-3. **Subprocess hygiene.** Fixed `arena.py`'s subprocess launch in `grade.py` to use `sys.executable -u` instead of a raw `python3`, so the child process gets the same venv and unbuffered output.
-4. **Output parser.** Rewrote the `run_matchup` parser in `grade.py` to understand the arena's actual `Game N/M: [W|B|D]` format (was looking for `[+] / [-] / [=]`, which the arena never prints) and the `Final: {W}W-{L}L-{D}D` summary line, with color-alternation tracking so outcomes are recorded from engine A's perspective.
-5. **Repo hygiene.** Added a comprehensive `.gitignore` (Python bytecode, `.DS_Store`, venvs, pytest caches, scratch `.tmp_stockfish/`), then `git rm -r --cached` the previously-tracked `__pycache__/` and `.DS_Store` files.
-6. **Set up the shared `.venv`** (§7) so every engine's existing `run.sh` resolves to a Python 3.11 interpreter with `python-chess`. Installed Stockfish 18 so the calibration anchors can spin up.
-7. **Independent UCI smoke test** of all four engines through their `run.sh` files — every one reaches `uciok` cleanly under the arena's `RLIMIT_AS = 512 MB` preexec.
-8. **Full calibration sweep.** 4 candidates × 3 Stockfish anchors × 12 games = 144 games. Each candidate's anchor matchups serialized so the resilient write in step 2 protects against interruption.
-9. **Full cross-validation sweep.** 6 unordered pairs × 10 games = 60 games. Outcomes written to *both* engines' `results.json` (with perspective inverted for B) so each engine has a complete view of its head-to-head record.
-10. **Sanity check the matrix** — verified row-vs-column consistency (A-vs-B from A's row equals B-vs-A from B's row with W↔L flipped) and that the row sums (W − L) order matches the calibration ranking.
-11. **Computed §8.3 residuals** by hand from the calibrated Elos and observed scores, flagging the two pairs (Strategy1 vs SimpleOneShot, chess-ttt vs Strategy1) where Strategy1 outperforms its calibration as the real signal.
-12. **Aggregate + write this report.**
+1. **Harness:** `grade.py` engine discovery (`DIRECT_ENGINES`, `ENGINE_ROOTS`), `--only`, incremental `results.json` writes, `sys.executable -u` for `arena.py`, outcome parsing for `[W]/[B]/[D]` and `Final:`.
+2. **OneShotOpus** integrated as a direct engine; calibrated and cross-validated vs peers.
+3. **Strategy1 upgrade:** `run.sh` switched to **`pesto`**; UCI uses one **`Searcher`** per session (persistent TT / killers / history); **time budget** and **TT mate** / **qsearch promotion** fixes in `search.py`.
+4. **Strategy1** recalibrated (36 games, 80 ms); **cross-validation** refreshed for pairs involving Strategy1 alongside the other three engines.
+5. **Reports:** `FINAL_REPORT_4ENGINE.md` and this file updated to the four-engine lineup and numbers above.
 
 ---
 
 ## 10. Limitations and next steps
 
-- **80 ms is a short time control.** At this budget the bottom two engines only reach depth 2-3; `SimpleOneShot_bot` and `Strategy1`'s advantage comes largely from PVS / TT / null-move / LMR letting them search deeper in the same wall-clock. Re-running at `movetime ∈ {200, 500, 1000}` would show how each engine scales with time and reduce the noise in the cross-validation residuals.
-- **Three anchors, skill levels 1/3/5.** Stockfish skill level 5 (≈1500) already crushes the bottom three engines 0-11-1 (and `Strategy1` 0-9-3); adding a 900-Elo anchor (e.g. `UCI_LimitStrength` with a specific rating) would give the weaker engines a non-saturating reference and tighten their CIs dramatically — most directly, it would resolve whether `Strategy1`'s true Elo really is closer to 1100 than 1014.
-- **10 games per cross-validation pair** is noisy (1-σ ≈150 Elo near 50%). Bumping to 40+ games per pair would materially sharpen §8.3, at a roughly linear cost in wall clock.
-- **`grade.py` could do Bayesian updating** after cross-validation to refine Elos with head-to-head data, rather than treating it purely as diagnosis. Would close the gap between `Strategy1`'s anchor-derived 1014 and the higher implied strength from its dominance of TDD/chess-ttt.
-- **The Strategy1 ↔ SimpleOneShot gap is now an eval problem, not a search problem.** Both engines run essentially the same modern search recipe (PVS + TT + null-move + LMR + killers + history + aspiration windows), so the +181 Elo gap is almost entirely the eval function: SimpleOneShot uses tapered PeSTO piece-square tables, while Strategy1's current champion `fortress` is a hand-tuned king-safety-heavy heuristic. The next iteration of the Darwinian tournament should include a `pesto` personality (already present in `Strategy1/engines/mve/heuristics.py` REGISTRY) and let it compete head-to-head against `fortress` and the other personalities.
+- **80 ms** is a very fast control; rerun at 200–1000 ms to see scaling and shrink noise.
+- **Anchor skill levels** are not literal FIDE ratings; use them as **consistent relative yardsticks**.
+- **10 games per H2H pair** is noisy; 40+ games per pair would tighten §8.3.
+- **Recalibrate all four in one batch** if you need perfectly aligned `graded_at` timestamps and identical session conditions for every anchor block.
+- **Optional:** a second stage (e.g. BayesElo) that updates beliefs from H2H data — not implemented in `grade.py` today.

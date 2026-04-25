@@ -27,6 +27,7 @@ ENGINE_ROOTS = [
 DIRECT_ENGINES = [
     os.path.join(REPO_ROOT, "SimpleOneShot_bot"),
     os.path.join(REPO_ROOT, "Strategy1"),
+    os.path.join(REPO_ROOT, "OneShotOpus"),
 ]
 LEADERBOARD_PATH = os.path.join(REPO_ROOT, "LEADERBOARD.md")
 STOCKFISH_DIR = os.path.join(SCRIPT_DIR, "stockfish_bin")

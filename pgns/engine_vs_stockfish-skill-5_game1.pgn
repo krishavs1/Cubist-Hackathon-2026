@@ -6,4 +6,4 @@
 [Black "stockfish-skill-5"]
 [Result "0-1"]
 
-1. Nf3 d5 2. Nc3 d4 3. Ne4 Qd5 4. Nfg5 f5 5. Nxh7 fxe4 6. Nxf8 Kxf8 7. d3 Be6 8. Rg1 Nc6 9. Bf4 Nf6 10. Bxc7 Rh4 11. Bg3 Rh7 12. Bf4 g5 13. Bc7 Qd7 14. Bg3 Nh5 15. dxe4 Nxg3 16. hxg3 Rc8 17. Qd3 Nb4 18. Qf3+ Ke8 19. O-O-O Qa4 20. Rd2 Nxc2 21. Qd3 Ne1+ 22. Qc4 Qxc4+ 23. Kd1 Qc1# 0-1
+1. Nf3 Nf6 2. Nc3 d5 3. Rg1 d4 4. Nb5 c5 5. c4 Nc6 6. Qc2 a6 7. Na3 h6 8. Nb1 e5 9. Qd3 g5 10. Qc2 Nb4 11. Qa4+ Nd7 12. Nxe5 Bd6 13. Nf3 d3 14. exd3 O-O 15. Qb3 b5 16. cxb5 axb5 17. Ke2 Qe7+ 18. Kd1 Nf6 19. Nc3 Be6 20. Qa3 Bf5 21. Qb3 Ng4 22. Ne4 c4 23. Qc3 Rfd8 24. Nxd6 Nxf2# 0-1

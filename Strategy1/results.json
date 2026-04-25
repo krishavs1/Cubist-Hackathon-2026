@@ -1,5 +1,50 @@
 {
   "name": "Strategy1",
-  "anchors": {},
-  "cross_validation": {}
+  "anchors": {
+    "skill_1": {
+      "wins": 3,
+      "losses": 7,
+      "draws": 2,
+      "total": 12,
+      "base_elo": 1000.0
+    },
+    "skill_3": {
+      "wins": 2,
+      "losses": 8,
+      "draws": 2,
+      "total": 12,
+      "base_elo": 1200.0
+    },
+    "skill_5": {
+      "wins": 0,
+      "losses": 9,
+      "draws": 3,
+      "total": 12,
+      "base_elo": 1500.0
+    }
+  },
+  "cross_validation": {
+    "test-driven-development": {
+      "wins": 5,
+      "losses": 0,
+      "draws": 5,
+      "total": 10
+    },
+    "chess-ttt": {
+      "wins": 8,
+      "losses": 0,
+      "draws": 2,
+      "total": 10
+    },
+    "SimpleOneShot_bot": {
+      "wins": 0,
+      "losses": 7,
+      "draws": 3,
+      "total": 10
+    }
+  },
+  "elo": 1013.7788131180728,
+  "elo_ci_lower": 901.7511437522342,
+  "elo_ci_upper": 1125.8064824839114,
+  "graded_at": "2026-04-25T11:31:33.729978"
 }

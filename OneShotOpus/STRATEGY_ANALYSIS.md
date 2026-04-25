@@ -51,24 +51,3 @@ The core search is already near its ceiling — incremental Elo gains require ev
 **Projected ceiling: ~1,500–1,700 Elo** — approaching the Stockfish skill 5 anchor (~1,500 Elo).
 
 The practical ceiling for a pure Python UCI engine at 80 ms/move with a NNUE evaluator is approximately 1,600–1,800 Elo. Exceeding that requires a compiled search core (Rust or C++).
-
----
-
-## 4. ELO Rating — MVP
-
-**Status:** Not formally benchmarked via the Stockfish calibration harness.
-
-**Estimate: ~1,100–1,200 Elo** (95% CI: approximately [1,000, 1,300])
-
-Basis for estimate:
-
-- Algorithm feature set is equivalent to `SimpleOneShot_bot` (formally rated **1,195 Elo** [1,087, 1,303] in the final calibration run)
-- Both engines share the same modern recipe: Negamax + PVS, Zobrist TT (depth-bounded, bound-typed), null-move (R=2–3, disabled near zugzwang), LMR on quiet moves, quiescence with stand-pat + delta pruning, killer + history heuristics, tapered PeSTO piece-square tables
-- Reaches depth 7 in 1.5 seconds at ~30,000 nodes/sec (vs. OneShotHaiku at depth 4 in 5–10 seconds)
-- Estimated below SimpleOneShot_bot's formal 1,195 because the PST weights are untuned and the engine is less battle-tested; the gap should close after a Texel-tuning pass
-
-To get a formal rating, run:
-
-```bash
-python3 elo-test/grade.py --engine OneShotOpus/run.sh --games 36 --movetime 80
-```

@@ -6,6 +6,7 @@ Yesterday at 6:00 pm, we were given an open-ended prompt to build a chess engine
 
 Our plan was to formulate four entirely distinct, AI-driven development strategies and use them in parallel to generate prototype engines. To evaluate them, we built a custom tournament arena to force these prototypes to compete against each other. By treating the prompting methodologies themselves as variables in a measurable experiment, we could systematically evaluate their logic, code stability, and compute efficiency. Only after cross-validating their performance and identifying the statistically superior approach would we use those insights to optimize our final, battle-tested chess engine.
 
+```mermaid
 graph TD
     %% Define styles for a quantitative/research aesthetic
     classDef strategy fill:#f9f9f9,stroke:#333,stroke-width:1px;

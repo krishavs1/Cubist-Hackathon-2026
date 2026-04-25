@@ -15,6 +15,10 @@ if TYPE_CHECKING:
     import chess
 
 
+def _repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 @dataclass(frozen=True)
 class EngineOption:
     """A runnable chess engine discovered in the repository."""
@@ -208,8 +212,7 @@ class Engine:
 
         try:
             env = os.environ.copy()
-            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            venv_bin = os.path.join(repo_root, ".venv", "bin")
+            venv_bin = os.path.join(_repo_root(), ".venv", "bin")
             if os.path.isdir(venv_bin):
                 env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
 

@@ -6,6 +6,7 @@ Run from the repo root:
 
 Controls:
     Click a piece, then click a target square.
+    Esc quit
     U  undo last move
     R  reset to starting position
 """
@@ -223,9 +224,16 @@ def mode_label(mode: str) -> str:
 
 
 def main() -> None:
+    global SQUARE, BOARD_PX, SIDEBAR_PX, WINDOW_W, WINDOW_H
+
     pygame.init()
-    screen = pygame.display.set_mode((WINDOW_W, WINDOW_H))
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Chess")
+    WINDOW_W, WINDOW_H = screen.get_size()
+    sidebar_target = max(360, min(520, WINDOW_W // 3))
+    SQUARE = max(48, min(WINDOW_H // 8, (WINDOW_W - sidebar_target) // 8))
+    BOARD_PX = SQUARE * 8
+    SIDEBAR_PX = WINDOW_W - BOARD_PX
     clock = pygame.time.Clock()
 
     piece_cache = build_piece_cache()
@@ -404,7 +412,9 @@ def main() -> None:
                 running = False
 
             elif ev.type == pygame.KEYDOWN:
-                if ev.key == pygame.K_u and board.move_stack:
+                if ev.key == pygame.K_ESCAPE:
+                    running = False
+                elif ev.key == pygame.K_u and board.move_stack:
                     if current_player.is_engine() and current_player.thinking():
                         continue
                     board.pop()

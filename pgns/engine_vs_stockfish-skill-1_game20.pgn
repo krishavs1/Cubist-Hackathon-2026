@@ -1,0 +1,9 @@
+[Event "?"]
+[Site "?"]
+[Date "2026.04.25"]
+[Round "20"]
+[White "stockfish-skill-1"]
+[Black "engine"]
+[Result "1/2-1/2"]
+
+1. c3 Nf6 2. Nf3 Nc6 3. a3 d5 4. Qa4 b5 5. Qxb5 e5 6. Nxe5 Bxa3 7. e3 Bxb2 8. Qxc6+ Bd7 9. Qa6 Bxa1 10. Nxd7 Nxd7 11. Qxa1 Qf6 12. d4 O-O 13. Bd3 Rfe8 14. Qa2 Rab8 15. Na3 Rb6 16. Qxd5 Nf8 17. Qa2 Nd7 18. Qe2 h6 19. Bc2 Qd6 20. Bd1 Qd5 21. Qf3 Qxf3 22. gxf3 Nf6 23. Kd2 Nd5 24. c4 Nf6 25. Rg1 Kf8 26. Nb5 Ke7 27. Ba3+ Kd7 28. Ba4 Rc6 29. Nxa7 Ne4+ 30. fxe4 Rxe4 31. Kc3 Rxe3+ 32. fxe3 Ke6 33. Nb5 Rb6 34. Bc5 Rb8 35. Nxc7+ Kf6 36. Nd5+ Ke6 37. Nc7+ Kf6 38. Nd5+ Ke6 1/2-1/2

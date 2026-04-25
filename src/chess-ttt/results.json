@@ -1,0 +1,15 @@
+{
+  "name": "chess-ttt",
+  "matchups": {
+    "stockfish_anchor": {
+      "wins": 3,
+      "losses": 25,
+      "draws": 2,
+      "total": 30
+    }
+  },
+  "elo": 674.8346573428578,
+  "elo_ci_lower": 330.9032699281156,
+  "elo_ci_upper": 805.2976954439096,
+  "graded_at": "2026-04-25T00:33:40.375407"
+}

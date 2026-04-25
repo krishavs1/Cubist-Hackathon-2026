@@ -16,7 +16,7 @@ graph TD
 
     subgraph Phase 1: Parallel AI Development
         direction TB
-        S1[Strategy 1:<br>Megaprompt]:::strategy
+        S1[Megaprompt]:::strategy
         S2[Strategy 2:<br>Test-Driven Dev]:::strategy
         S3[Strategy 3:<br>TTT Scaler]:::strategy
         S4[Strategy 4:<br>Simple One-Shot]:::strategy
@@ -176,7 +176,7 @@ Each cell is **W–L–D** over **12 games** from the **engine’s** perspective
 
 | Engine | Calibrated Elo | 95% CI | vs Stockfish skill **1** (~1000) | vs Stockfish skill **3** (~1200) | vs Stockfish skill **5** (~1500) |
 | --- | ---: | --- | :---: | :---: | :---: |
-| **Strategy1** | **1447** | [1319, 1576] | 11–1–0 | 10–2–0 | 3–5–4 |
+| **Megaprompt** | **1447** | [1319, 1576] | 11–1–0 | 10–2–0 | 3–5–4 |
 | **SimpleOneShot_bot** | **1195** | [1087, 1303] | 9–2–1 | 4–6–2 | 0–8–4 |
 | **test-driven-development** | **863** | [737, 990] | 2–6–4 | 0–10–2 | 0–11–1 |
 | **chess-ttt** | **779** | [615, 943] | 1–8–3 | 0–12–0 | 0–11–1 |
@@ -195,15 +195,15 @@ Head-to-head runs use **`elo-test/arena.py`**: **10 games** per pair, **80 ms/mo
 | --- | --- |
 | Games per pair | 10 |
 | Movetime | 80 ms |
-| Engines | **Strategy1**, **OneShotOpus**, **test-driven-development**, **chess-ttt** |
+| Engines | **Megaprompt**, **OneShotOpus**, **test-driven-development**, **chess-ttt** |
 
 ---
 
 ### 5.2 Cross-validation matrix (four engines)
 
-|  | **Strategy1** | **OneShotOpus** | **test-driven-development** | **chess-ttt** |
+|  | **Megaprompt** | **OneShotOpus** | **test-driven-development** | **chess-ttt** |
 | --- | :---: | :---: | :---: | :---: |
-| **Strategy1** | — | 4–0–6 | 10–0–0 | 10–0–0 |
+| **Megaprompt** | — | 4–0–6 | 10–0–0 | 10–0–0 |
 | **OneShotOpus** | 0–4–6 | — | 8–0–2 | 10–0–0 |
 | **test-driven-development** | 0–10–0 | 0–8–2 | — | 5–0–5 |
 | **chess-ttt** | 0–10–0 | 0–10–0 | 0–5–5 | — |
@@ -216,7 +216,7 @@ Net = Σ (wins − losses) over the **three** opponents in §5.2 (draws omitted)
 
 | Engine | Calibrated Elo (Stockfish, §4) | Net W−L (§5.2) |
 | --- | ---: | ---: |
-| **Strategy1** | 1447 | +24 |
+| **Megaprompt** | 1447 | +24 |
 | **OneShotOpus** | 1212 | +14 |
 | **test-driven-development** | 863 | −13 |
 | **chess-ttt** | 779 | −25 |
@@ -235,9 +235,9 @@ Elo alone doesn't tell the full story. A methodology that produces a 1400-Elo en
 | chess-ttt | ~13,600 | ~$0.07 | Chess step only; game-agnostic search reused from TTT |
 | TDD | ~30,000 | ~$0.13 | Full TDD loop: tests, implementation, UCI conformance |
 | OneShotOpus | ~12,260 | ~$0.63 | Fewest tokens, but claude-opus-4-7 pricing ($75/M output) |
-| Strategy1 | ~105,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
+| Megaprompt | ~105,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
 
-chess-ttt is the cheapest in absolute dollar terms because it reuses a verified search core and only replaces the game-specific layer. OneShotOpus has the lowest token count but the second-highest dollar cost — claude-opus-4-7 is expensive per token. Strategy1 consumes the most tokens by a wide margin due to its research-heavy upfront investment and multi-model prompting across the team.
+chess-ttt is the cheapest in absolute dollar terms because it reuses a verified search core and only replaces the game-specific layer. OneShotOpus has the lowest token count but the second-highest dollar cost — claude-opus-4-7 is expensive per token. Megaprompt consumes the most tokens by a wide margin due to its research-heavy upfront investment and multi-model prompting across the team.
 
 ### 6.2 Expected Optimization Cost
 
@@ -245,21 +245,21 @@ chess-ttt is the cheapest in absolute dollar terms because it reuses a verified 
 |---|---|---|---|
 | TDD | ~35,000 | ~$0.13 | Quiescence search, TT, LMR, null-move, PST tuning |
 | chess-ttt | ~38,000 | ~$0.15 | Same features, but requires forking the shared search core |
-| Strategy1 | ~76,000 | ~$0.30 | Reflexion v2/v3, endgame eval, tapered PST variants, time tuning |
+| Megaprompt | ~76,000 | ~$0.30 | Reflexion v2/v3, endgame eval, tapered PST variants, time tuning |
 | OneShotOpus | ~38,000 | ~$1.80–3.00 | Texel tuning, NNUE — expensive on Opus; ~$0.20 if delegated to Haiku |
 
-TDD and chess-ttt are the cheapest to optimize because their search stacks have clear, well-understood gaps (no TT, no quiescence). Strategy1's optimization loop is more expensive because it runs internal tournaments to validate each change. OneShotOpus is the most expensive to optimize on-methodology because its remaining improvements (learned evaluation) are inherently token-heavy on a frontier model.
+TDD and chess-ttt are the cheapest to optimize because their search stacks have clear, well-understood gaps (no TT, no quiescence). Megaprompt's optimization loop is more expensive because it runs internal tournaments to validate each change. OneShotOpus is the most expensive to optimize on-methodology because its remaining improvements (learned evaluation) are inherently token-heavy on a frontier model.
 
 ### 6.3 Projected Elo Ceiling
 
 | Engine | Current Elo | Projected Ceiling | Gap to Close |
 |---|---|---|---|
-| Strategy1 | 1447 | ~1,500–1,700 | +50–250 |
+| Megaprompt | 1447 | ~1,500–1,700 | +50–250 |
 | OneShotOpus | 1212 | ~1,500–1,700 | +290–490 |
 | TDD | 863 | ~1,100–1,300 | +240–440 |
 | chess-ttt | 779 | ~1,000–1,250 | +220–470 |
 
-Strategy1's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed, a compiled Rust rewrite would push the ceiling significantly higher.
+Megaprompt's ceiling was originally projected at 1,300–1,400 in its COMPUTE.md. The PeSTO upgrade already pushed it past that to 1,447, so the ceiling has been revised upward to match OneShotOpus's architectural parity. Both are bounded by Python's runtime speed, a compiled Rust rewrite would push the ceiling significantly higher.
 
 ---
 
@@ -288,7 +288,7 @@ The first four factors carry 80% of total weight because engine strength and com
 
 | Engine | Chess Quality | AI Usage | Process | Engineering | Total /40 |
 |---|---|---|---|---|---|
-| Strategy1 | 10 | 9 | 9 | 8 | **36** |
+| Megaprompt | 10 | 9 | 9 | 8 | **36** |
 | TDD | 5 | 9 | 6 | 10 | **30** |
 | chess-ttt | 4 | 8 | 7 | 9 | **28** |
 | OneShotOpus | 8 | 5 | 3 | 5 | **21** |
@@ -297,14 +297,14 @@ The first four factors carry 80% of total weight because engine strength and com
 
 | Engine | F1 | F2 | F3 | F4 | F5 | F6 | **MES** |
 |---|---|---|---|---|---|---|---|
-| **Strategy1** | 1.000 | 1.000 | 0.000 | 0.927 | 1.000 | 1.000 | **0.789** |
+| **Megaprompt** | 1.000 | 1.000 | 0.000 | 0.927 | 1.000 | 1.000 | **0.789** |
 | **OneShotOpus** | 0.648 | 0.796 | 0.276 | 0.000 | 1.000 | 0.583 | **0.534** |
 | **TDD** | 0.126 | 0.245 | 0.924 | 1.000 | 0.158 | 0.833 | **0.515** |
 | **chess-ttt** | 0.000 | 0.000 | 1.000 | 0.993 | 0.000 | 0.778 | **0.427** |
 
-### 7.3 Why Strategy1 Won
+### 7.3 Why Megaprompt Won
 
-**Strategy1 scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its ~105K-token, multi-model research pipeline was the most expensive to construct (see §6.1). That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
+**Megaprompt scores 0.789** — a clear margin above second place (0.534). It earns perfect scores on F1, F2, F5, and F6, losing points only on MVP build cost (F3 = 0.000) because its ~105K-token, multi-model research pipeline was the most expensive to construct (see §6.1). That cost is offset by strong scores everywhere else, particularly F4 (0.927) — once built, it is one of the cheaper strategies to continue optimizing.
 
 The second and third place finishers — OneShotOpus (0.534) and TDD (0.515) — are nearly tied, revealing an interesting tension: OneShotOpus wins on engine quality but is penalized heavily on F4 (Opus optimization costs ~$2.40 per pass); TDD wins on compute efficiency but is limited by its weaker engine. Neither dominates the other.
 
@@ -359,7 +359,7 @@ The result is one strategy with three people's work compounding at once. The per
 
 | | |
 | --- | --- |
-| **What this is** | Final **Strategy 1 (megaprompt)** strength after the §8 parallel push: the **optimized Rust** UCI engine (`strategies/Strategy1/engines/rust/`, `engine/run.sh`). |
+| **What this is** | Final **megaprompt** strength after the §8 parallel push: the **optimized Rust** UCI engine (code under `strategies/Strategy1/engines/rust/`, launcher `engine/run.sh`). |
 | **Calibration** | Same three **Stockfish skill** anchors (**1 / 3 / 5** → nominal **1000 / 1200 / 1500** Elo), combined Elo via **inverse-variance weighting** and trinomial score uncertainty in `elo-test/grade.py` (see §4.1–§4.2). |
 | **Run settings** | **60** games total (**20 per anchor**), **100 ms/move**, eight-book openings, alternating colors (arena defaults). |
 | **Combined Elo** | **1740** |
@@ -368,7 +368,7 @@ The result is one strategy with three people's work compounding at once. The per
 | **vs skill 3 (~1200)** | **18–1–1** |
 | **vs skill 5 (~1500)** | **15–3–2** |
 
-This is the number we cite as **megaprompt’s final** calibrated strength in this repo: native speed lets the **same** search-and-eval design (PVS, deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered scoring, Reflexion-style patches) use the clock budget for **more depth** than the Python MVE. The **Strategy1** row in §4.3 is still the **Python** run (**80 ms**, **12 games per anchor**); it and **1740** differ by **implementation**, **movetime**, and **games per anchor**, not by the anchor ladder itself.
+This is the number we cite as **megaprompt’s final** calibrated strength in this repo: native speed lets the **same** search-and-eval design (PVS, deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered scoring, Reflexion-style patches) use the clock budget for **more depth** than the Python MVE. The **Megaprompt** row in §4.3 is still the **Python** run (**80 ms**, **12 games per anchor**); it and **1740** differ by **implementation**, **movetime**, and **games per anchor**, not by the anchor ladder itself.
 
 ---
 
@@ -381,12 +381,12 @@ We ran parallelism at every phase, treating it as a force multiplier on AI outpu
 **Phase 2 — Four parallel development tracks:** All four strategies and the arena infrastructure were built simultaneously on separate branches with no shared engine code. This isolation meant the tournament result reflects methodology differences, not implementation coupling.
 
 ```
-Member 1 → Strategy1 (megaprompt)      Member 4 → OneShotOpus (baseline)
+Member 1 → Megaprompt track      Member 4 → OneShotOpus (baseline)
 Member 2 → TDD track                   Member 5 → Arena infrastructure
 Member 3 → chess-ttt (TTT→Chess)
 ```
 
-**Phase 3 — Three concurrent optimization tracks:** After the tournament selected Strategy1, the two-layer architecture (fixed search + swappable evaluator) let three people work in parallel without conflicts: Reflexion personality loop, Rust port for speed, cross-strategy borrowing. None waited on another.
+**Phase 3 — Three concurrent optimization tracks:** After the tournament picked the **megaprompt** track, the two-layer architecture (fixed search + swappable evaluator) let three people work in parallel without conflicts: Reflexion personality loop, Rust port for speed, cross-strategy borrowing. None waited on another.
 
 The compounding effect: the single-prompt Python baseline reached 1014 Elo. The full parallel process reached 1740 Elo — **+726 Elo from structure**, on under $2.00 total API spend.
 
@@ -396,17 +396,17 @@ The compounding effect: the single-prompt Python baseline reached 1014 Elo. The 
 
 | | Chess Quality | AI Usage | Process | Engineering |
 |---|---|---|---|---|
-| **Strategy1** | 1447 Elo (Python), 1740 (Rust); Darwinian eval selection + Reflexion | Multi-model synthesis + tournament feedback loop | 5-person parallel tracks; 3 concurrent optimization workstreams | Internal tournament as quality gate |
+| **Megaprompt** | 1447 Elo (Python), 1740 (Rust); Darwinian eval selection + Reflexion | Multi-model synthesis + tournament feedback loop | 5-person parallel tracks; 3 concurrent optimization workstreams | Internal tournament as quality gate |
 | **OneShotOpus** | 1212 Elo; strong baseline, no iteration | Single prompt — model carries full load, no human feedback loop | No structure; one person, one prompt | No tests or documentation |
 | **TDD** | 863 Elo; correct but shallow search | Most rigorous AI evaluation — every function gated by a failing test | Tight red-green-refactor loop; single developer | 27 unit tests + 6 UCI conformance checks |
 | **chess-ttt** | 779 Elo; game-agnostic abstraction caps chess strength | AI generalized one search core across 3 games | Sequential verified stages (TTT → Checkers → Chess) | 52+ tests, perft + MD5 cross-game checks |
 
-**Chess Quality:** The 668-Elo gap between first and last came down to feedback loops, not model capability. Strategy1’s Darwinian selection and Reflexion cycles produced evaluators calibrated to actual game outcomes. OneShotOpus showed a capable one-shot baseline; TDD and chess-ttt were limited by missing search features (no quiescence, no TT) and architectural abstraction costs respectively.
+**Chess Quality:** The 668-Elo gap between first and last came down to feedback loops, not model capability. Megaprompt’s Darwinian selection and Reflexion cycles produced evaluators calibrated to actual game outcomes. OneShotOpus showed a capable one-shot baseline; TDD and chess-ttt were limited by missing search features (no quiescence, no TT) and architectural abstraction costs respectively.
 
-**AI Usage:** Strategy1’s tournament-select-then-diagnose loop is a genuine human-AI collaboration. TDD’s test-gate is the most rigorous — every AI output was immediately falsifiable. OneShotOpus, despite using the strongest model, has the weakest AI usage score because there is no evaluation or iteration.
+**AI Usage:** Megaprompt’s tournament-select-then-diagnose loop is a genuine human-AI collaboration. TDD’s test-gate is the most rigorous — every AI output was immediately falsifiable. OneShotOpus, despite using the strongest model, has the weakest AI usage score because there is no evaluation or iteration.
 
 **Process:** Parallel workstreams compounded where sequential ones plateaued. chess-ttt’s sequential verified stages were principled but a single bad step would have cost the chess endpoint. TDD’s loop was tight but unbranched.
 
-**Engineering:** Tests catch correctness bugs; tournaments catch quality gaps. TDD and chess-ttt had the deepest test coverage. Strategy1 traded unit tests for tournament-validated evaluators: a valid tradeoff, but one that makes search-level bugs harder to detect.
+**Engineering:** Tests catch correctness bugs; tournaments catch quality gaps. TDD and chess-ttt had the deepest test coverage. Megaprompt traded unit tests for tournament-validated evaluators: a valid tradeoff, but one that makes search-level bugs harder to detect.
 
-**Overarching lesson:** Structure beats raw model capability. OneShotOpus used the most expensive model and finished second-to-last. Strategy1 used the same API with deliberate parallelism, selection, and feedback and finished 255 Elo points higher at a fraction of the optimization cost.
+**Overarching lesson:** Structure beats raw model capability. OneShotOpus used the most expensive model and finished second-to-last. Megaprompt used the same API with deliberate parallelism, selection, and feedback and finished 255 Elo points higher at a fraction of the optimization cost.

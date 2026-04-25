@@ -375,123 +375,39 @@ This is the number we cite as **megaprompt’s final** calibrated strength in th
 
 ## 10. How We Parallelized AI Workflows
 
-The core thesis of this project was that structured parallelism — across both humans and AI models — compounds in ways that sequential prompting cannot. We ran three distinct waves of parallel AI work, each designed to eliminate a different bottleneck.
+We ran parallelism at every phase, treating it as a force multiplier on AI output quality.
 
----
+**Phase 1 — Multi-model ideation:** Each team member independently queried a different model (Claude, GPT-4, Gemini) on the same architecture questions, then we held a design review to cross-examine outputs. Ideas that appeared across multiple models were treated as high-confidence; unique ideas were flagged as speculative but potentially differentiating. The result was the 53 KB master prompt — richer than any single model session could produce.
 
-### 10.1 Phase 1: Multi-Model Ideation (Before Writing Any Code)
-
-Before a single line of engine code existed, we ran an explicit divergence step. Each team member independently engaged with a different foundation model — Claude, GPT-4, Gemini — and asked the same set of architecture questions: what search algorithms produce the best strength-per-millisecond, what evaluation heuristics matter most at different time controls, what are the known failure modes of Python chess engines.
-
-This wasn't just five people running the same prompt. Different models have different priors about what "good chess engine design" looks like based on their training data. By querying them independently and then holding a design review to cross-examine the outputs, we got a richer set of candidate ideas than any single model session would have produced. Redundant suggestions were discarded; ideas that appeared across multiple models were treated as high-confidence; ideas that appeared in only one were flagged as speculative but potentially differentiating.
-
-The output was the 53 KB master prompt that drove Strategy1 — a document that no one person and no one model could have written alone.
-
----
-
-### 10.2 Phase 2: Four Parallel Development Tracks + Arena Infrastructure
-
-While the megaprompt synthesis was running, three other strategies were being developed simultaneously by different team members on their own branches. The arena infrastructure (matchmaking, Stockfish grading, PGN logging, Elo computation) was built in parallel as a fifth workstream — it had to be ready before any of the four engines were, so it ran ahead of them.
+**Phase 2 — Four parallel development tracks:** All four strategies and the arena infrastructure were built simultaneously on separate branches with no shared engine code. This isolation meant the tournament result reflects methodology differences, not implementation coupling.
 
 ```
-Team member 1  →  Strategy1 (megaprompt synthesis)
-Team member 2  →  TDD track
-Team member 3  →  chess-ttt (TTT → Checkers → Chess)
-Team member 4  →  OneShotOpus (baseline MVP)
-Team member 5  →  Arena infrastructure (tournament runner, Elo grading)
+Member 1 → Strategy1 (megaprompt)      Member 4 → OneShotOpus (baseline)
+Member 2 → TDD track                   Member 5 → Arena infrastructure
+Member 3 → chess-ttt (TTT→Chess)
 ```
 
-All four engines finished and were calibrated against the same Stockfish anchors using the same arena infrastructure, giving us a clean apples-to-apples comparison. Because the development tracks were fully isolated (separate branches, separate strategy folders, no shared engine code), there was no way for one track's choices to contaminate another. The tournament result reflects strategy differences, not implementation coupling.
+**Phase 3 — Three concurrent optimization tracks:** After the tournament selected Strategy1, the two-layer architecture (fixed search + swappable evaluator) let three people work in parallel without conflicts: Reflexion personality loop, Rust port for speed, cross-strategy borrowing. None waited on another.
 
----
-
-### 10.3 Phase 3: Three Concurrent Optimization Workstreams
-
-After the tournament selected Strategy1 as the winner, parallelism continued. The two-layer architecture (fixed search + swappable evaluator) created a natural interface that let three people work simultaneously without touching each other's code:
-
-| Track | Owner | What It Did |
-|---|---|---|
-| Reflexion loop | Teammate A | Fed lost games back to Claude; produced `reflexion_v1` personality |
-| Rust port | Teammate B | Rewrote full engine in Rust; ~200× faster search, same evaluator logic |
-| Cross-strategy borrow | Teammate C | Audited rival engines for transferable ideas; validated `shakmaty` library |
-
-Each track produced independently measurable value: the Reflexion track improved the evaluator, the Rust track improved the search budget, the borrow track de-risked the library choice. None waited on another. All three outputs merged into the final calibrated engine at 1740 Elo.
-
----
-
-### 10.4 Why Parallelism Mattered
-
-The compounding effect is visible in the numbers. The Python MVP (single-developer, single prompt) reached 1014 Elo at baseline. The full parallel process — multi-model ideation, Darwinian selection, Reflexion, Rust port — reached 1740 Elo. That is a **+726 Elo gain from structure**, not from using a stronger model or spending more on API calls.
-
-The total API spend across all three phases was under $2.00. The Elo gain per dollar is orders of magnitude higher than any alternative that achieves the same endpoint by running more Opus prompts sequentially.
+The compounding effect: the single-prompt Python baseline reached 1014 Elo. The full parallel process reached 1740 Elo — **+726 Elo from structure**, on under $2.00 total API spend.
 
 ---
 
 ## 11. Final Takeaways
 
-The four strategies produced measurably different outcomes across every dimension that matters: engine strength, compute cost, process rigor, and long-term scalability. Below are the key lessons organized by the four hackathon judging criteria.
-
----
-
-### 11.1 Chess Engine Quality
-
-**What we learned:** Architecture determines the ceiling; the evaluator determines where you land within it.
-
-All four engines used some form of alpha-beta search, but the quality gap was enormous — 668 Elo between first and last. The difference wasn’t raw search depth, it was what the engine *does* with the positions it reaches:
-
-- **Strategy1 (1447 → 1740 Elo)** reached the highest strength by combining a strong modern search stack with an AI-refereed tournament to select the best evaluator, then applying Reflexion to patch the specific weaknesses that caused losses. The Darwinian approach produced evaluators better calibrated to actual game outcomes than anything hand-tuned.
-- **OneShotOpus (1212 Elo)** shows that a single well-crafted prompt to a capable model can bootstrap a competitive engine. Tapered PeSTO, null-move, and LMR all appeared unprompted. Its ceiling is real — it just never had a feedback loop to close the gap.
-- **TDD (863 Elo)** prioritized correctness over strength. Every move it generates is legal, every search bound is guaranteed. But without quiescence search or a transposition table, it cannot look past tactical sequences — a positional advantage evaporates the moment it misses a three-move combination.
-- **chess-ttt (779 Elo)** demonstrates an architectural constraint: a game-agnostic search is necessarily less efficient at chess than one designed for it. The abstraction that let it scale from TTT → Checkers → Chess in one codebase is also the reason it can’t exploit chess-specific patterns like zobrist hashing, passed-pawn evaluation, or king-safety attack tables.
-
----
-
-### 11.2 AI Usage
-
-**What we learned:** The way you collaborate with AI matters more than which model you use.
-
-The most interesting axis isn’t the strength of the model — it’s whether the human uses AI as a rubber stamp or as a deliberate collaborator:
-
-- **Strategy1** used AI most creatively. Five team members each ran their own brainstorming sessions with different models, then held a design review to cross-examine the outputs. The Darwinian evaluation loop — AI generates personalities, a tournament selects the winner, the loser’s game history goes back to AI for diagnosis — is a genuine feedback cycle where neither the human nor the model makes the final call alone.
-- **TDD** used AI in the most rigorous way. Every AI-generated function was gated behind a failing test before it could land in the codebase. The red-green-refactor loop means AI output was never taken at face value — it was immediately falsifiable by running the tests.
-- **chess-ttt** used AI to solve a genuinely hard generalization problem: produce one search core that plays three different games correctly. The TTT → Checkers → Chess lineage forced the model to reason about abstraction boundaries rather than just writing chess code.
-- **OneShotOpus** is the most honest baseline for what AI usage looks like without deliberate structure. One prompt, one response, shipped. It produced a technically solid engine, which tells you something about how capable frontier models are — but the score is entirely determined by the model, not the methodology.
-
----
-
-### 11.3 Process & Parallelization
-
-**What we learned:** Parallel workstreams compound. Sequential ones don’t.
-
-The clearest structural advantage Strategy1 had was that its two-layer design (fixed search, swappable evaluator) let multiple people work simultaneously without merge conflicts or dependency bottlenecks:
-
-- **Strategy1** ran three tracks at once after the tournament: Reflexion personality refinement, Rust port for speed, and cross-strategy borrowing. Each track produced independent value, and all three fed into the final engine. No track blocked another.
-- **chess-ttt** had the most structured sequential process: TTT had to be correct before Checkers could start, and Checkers had to be correct before Chess could start. This was principled — each stage was formally verified before handing off — but it meant one wrong turn at Checkers would have cost the whole chess step.
-- **TDD** had a tight feedback loop (test → implement → refactor) but it was a single-developer workflow. Process rigor was high; parallelism was zero.
-- **OneShotOpus** had no process in the conventional sense. The entire methodology was one prompt. This makes it fast to start but brittle — there is no structured way to improve it, debug it, or hand it to a second person.
-
----
-
-### 11.4 Engineering Quality
-
-**What we learned:** Tests catch bugs; tournaments catch weaknesses. You need both.
-
-The four strategies represent a genuine tradeoff between test coverage (confidence in correctness) and tournament-validated strength (confidence in quality):
-
-- **TDD** scored highest on engineering quality: 27 unit tests, 6 UCI conformance checks, a benchmark suite, and workflow documentation. Every component is independently verifiable. The cost is development velocity — you write the test before you write the function, which slows the initial build.
-- **chess-ttt** built 52+ tests including perft verification and byte-identical MD5 checks across all three game implementations. MD5-matching the search core across TTT, Checkers, and Chess is a particularly strong correctness guarantee — it proves the abstraction didn’t silently diverge.
-- **Strategy1** compensated for fewer unit tests with internal tournament validation. The round-robin arena serves a similar function to a test suite for the evaluator: if a new personality doesn’t win, it doesn’t ship. The engineering weakness is that search-level bugs are harder to catch this way.
-- **OneShotOpus** had no tests, no documentation, and no validation pipeline. It worked because the model happened to produce correct code — but there is no engineering infrastructure to verify that, and no foundation for a second developer to build on.
-
----
-
-### Summary
-
 | | Chess Quality | AI Usage | Process | Engineering |
 |---|---|---|---|---|
-| **Strategy1** | Highest Elo; Darwinian selection + Reflexion | Multi-model synthesis + tournament + Reflexion feedback | 3 concurrent workstreams post-selection | Internal tournament as quality gate; fewer unit tests |
-| **OneShotOpus** | Strong baseline; no iteration | Single prompt, no feedback — model carries full load | No process structure | No tests or documentation |
-| **TDD** | Correct but shallow; gaps in search | Most rigorous AI evaluation — every function gated by a failing test | Tight loop, single developer | Highest test coverage; 27 unit tests + UCI conformance |
-| **chess-ttt** | Game-agnostic abstraction caps chess strength | Novel generalization challenge across 3 game types | Sequential verified stages | 52+ tests, perft and MD5 cross-game checks |
+| **Strategy1** | 1447 Elo (Python), 1740 (Rust); Darwinian eval selection + Reflexion | Multi-model synthesis + tournament feedback loop | 5-person parallel tracks; 3 concurrent optimization workstreams | Internal tournament as quality gate |
+| **OneShotOpus** | 1212 Elo; strong baseline, no iteration | Single prompt — model carries full load, no human feedback loop | No structure; one person, one prompt | No tests or documentation |
+| **TDD** | 863 Elo; correct but shallow search | Most rigorous AI evaluation — every function gated by a failing test | Tight red-green-refactor loop; single developer | 27 unit tests + 6 UCI conformance checks |
+| **chess-ttt** | 779 Elo; game-agnostic abstraction caps chess strength | AI generalized one search core across 3 games | Sequential verified stages (TTT → Checkers → Chess) | 52+ tests, perft + MD5 cross-game checks |
 
-The overarching lesson: **structure beats raw model capability.** OneShotOpus used the strongest model (Opus) with the least structure and ended up second-to-last on overall score. Strategy1 used the same Claude API but applied it through deliberate research loops, a tournament-based selection mechanism, and a Reflexion feedback cycle — and ended up 255 Elo points higher with a clear path to further improvement.
+**Chess Quality:** The 668-Elo gap between first and last came down to feedback loops, not model capability. Strategy1’s Darwinian selection and Reflexion cycles produced evaluators calibrated to actual game outcomes. OneShotOpus showed a capable one-shot baseline; TDD and chess-ttt were limited by missing search features (no quiescence, no TT) and architectural abstraction costs respectively.
+
+**AI Usage:** How you use the model matters more than which model you use. Strategy1’s tournament-select-then-diagnose loop is a genuine human-AI collaboration. TDD’s test-gate is the most rigorous — every AI output was immediately falsifiable. OneShotOpus, despite using the strongest model, has the weakest AI usage score because there is no evaluation or iteration.
+
+**Process:** Parallel workstreams compounded where sequential ones plateaued. chess-ttt’s sequential verified stages were principled but a single bad step would have cost the chess endpoint. TDD’s loop was tight but unbranched.
+
+**Engineering:** Tests catch correctness bugs; tournaments catch quality gaps. TDD and chess-ttt had the deepest test coverage. Strategy1 traded unit tests for tournament-validated evaluators — a valid tradeoff, but one that makes search-level bugs harder to detect.
+
+**Overarching lesson:** Structure beats raw model capability. OneShotOpus used the most expensive model and finished second-to-last. Strategy1 used the same API with deliberate parallelism, selection, and feedback — and finished 255 Elo points higher at a fraction of the optimization cost.

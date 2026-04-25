@@ -12,6 +12,15 @@ from datetime import datetime
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 SRC_DIR = os.path.join(REPO_ROOT, "src")
+# Additional discovery roots. Each directory here is scanned with the same
+# `<name>/engine/run.sh` convention as SRC_DIR. This lets us host engines
+# grouped by lineage (e.g. ttt-iteration_bot/ for the
+# tic-tac-toe → checkers → chess-ttt iteration) without forcing every
+# engine to live under src/.
+ENGINE_ROOTS = [
+    SRC_DIR,
+    os.path.join(REPO_ROOT, "ttt-iteration_bot"),
+]
 LEADERBOARD_PATH = os.path.join(REPO_ROOT, "LEADERBOARD.md")
 STOCKFISH_DIR = os.path.join(SCRIPT_DIR, "stockfish_bin")
 STOCKFISH_PATH = os.path.join(STOCKFISH_DIR, "stockfish")
@@ -69,14 +78,33 @@ class StockfishWrapper:
         os.chmod(self.run_sh, 0o755)
 
 def discover_methodologies():
+    """Scan every directory in ENGINE_ROOTS for <root>/<name>/engine/run.sh.
+
+    If the same engine name is present in multiple roots, the first root
+    wins (SRC_DIR is listed first and remains the primary location).
+    """
     methods = {}
-    if os.path.exists(SRC_DIR):
-        for name in os.listdir(SRC_DIR):
-            if name.startswith("_"): continue
-            run_sh = os.path.join(SRC_DIR, name, "engine", "run.sh")
-            if os.path.exists(run_sh):
+    for root in ENGINE_ROOTS:
+        if not os.path.exists(root):
+            continue
+        for name in os.listdir(root):
+            if name.startswith("_") or name.startswith("."):
+                continue
+            run_sh = os.path.join(root, name, "engine", "run.sh")
+            if os.path.exists(run_sh) and name not in methods:
                 methods[name] = run_sh
     return methods
+
+
+def results_path_for(run_sh_path):
+    """Return the results.json path next to the engine this run.sh belongs to.
+
+    ``run.sh`` lives at ``<root>/<name>/engine/run.sh``; results.json sits
+    at ``<root>/<name>/results.json`` regardless of which root contributed
+    the engine.
+    """
+    engine_dir = os.path.dirname(os.path.dirname(run_sh_path))
+    return os.path.join(engine_dir, "results.json")
 
 def fishtest_stats(w, l, d):
     """Calculates relative Elo and Standard Error using trinomial logic."""
@@ -131,7 +159,7 @@ def main():
     # Load all existing data
     all_data = {}
     for name in method_names:
-        rp = os.path.join(SRC_DIR, name, "results.json")
+        rp = results_path_for(methods[name])
         all_data[name] = {"name": name, "anchors": {}, "cross_validation": {}}
         if os.path.exists(rp):
             with open(rp, "r") as f:
@@ -155,7 +183,7 @@ def main():
                             all_data[name_b]["cross_validation"][name_a] = {"wins": l, "losses": w, "draws": d, "total": len(outcomes)}
                             
                             for n in [name_a, name_b]:
-                                with open(os.path.join(SRC_DIR, n, "results.json"), "w") as f:
+                                with open(results_path_for(methods[n]), "w") as f:
                                     json.dump(all_data[n], f, indent=2)
         else:
             # Stockfish Calibration Mode (Default)
@@ -196,7 +224,7 @@ def main():
                         "elo_ci_upper": combined_elo + 1.96 * combined_se,
                         "graded_at": datetime.now().isoformat()
                     })
-                    with open(os.path.join(SRC_DIR, name, "results.json"), "w") as f:
+                    with open(results_path_for(methods[name]), "w") as f:
                         json.dump(all_data[name], f, indent=2)
 
     # Reporting

@@ -1,5 +1,6 @@
 [Event "?"]
 [Site "?"]
+<<<<<<< HEAD
 [Date "2026.04.24"]
 [Round "30"]
 [White "stockfish-skill-1"]
@@ -7,3 +8,12 @@
 [Result "1/2-1/2"]
 
 1. e4 Nc6 2. Bb5 Nd4 3. Bf1 Nf6 4. Ne2 Nxe2 5. Bxe2 Nxe4 6. c3 e5 7. O-O Qg5 8. Bf3 Nd6 9. Qe1 Qf5 10. d4 Be7 11. dxe5 Nc4 12. Na3 Nxe5 13. Bd5 Nd3 14. Be4 Qe6 15. Bxd3 Bxa3 16. Bc4 d5 17. Bxd5 Qxe1 18. Bf4 Qe2 19. Rae1 Qxe1 20. g4 Qe2 21. h3 Bxg4 22. Bxb7 Bxb2 23. Bg3 Bxc3 24. Bh4 Bxh3 25. Ra1 Qg4+ 26. Bg3 Bxa1 27. Bc6+ Ke7 28. Ba4 Bf6 29. Bc6 Rad8 30. Ba8 Rxa8 31. Kh2 Kf8 32. a4 Kg8 33. f3 Qh5 34. Bf4 Qxf3 35. Be3 Rf8 36. Bc5 Re8 37. Bf8 Kxf8 38. a5 Rg8 39. a6 Rh8 40. Kg1 Rg8 41. Kh2 Rh8 42. Kg1 Rg8 1/2-1/2
+=======
+[Date "2026.04.25"]
+[Round "30"]
+[White "stockfish-skill-1"]
+[Black "engine"]
+[Result "1-0"]
+
+1. c3 Nf6 2. d4 Nc6 3. Nf3 d5 4. Bg5 Ne4 5. e3 Nxg5 6. Nxg5 e5 7. Nf3 exd4 8. Nxd4 Nxd4 9. Qa4+ Ke7 10. Qxd4 Bf5 11. Qf4 Bxb1 12. a3 Bg6 13. h4 Qd7 14. h5 Bc2 15. Qb4+ c5 16. Qxc5+ Kf6 17. Qd4+ Ke6 18. Be2 Ke7 19. Bf3 Qd6 20. h6 Bf5 21. hxg7 Bxg7 22. Qxg7 Rhe8 23. Qd4 Rg8 24. Qxd5 Qxd5 25. Bxd5 Kd6 26. Rd1 Ke5 27. Bf3 h6 28. Rxh6 f6 29. a4 Rae8 30. Rd4 Rg7 31. Rh5 Ke6 32. Bd5+ Kd6 33. Be4+ Kc7 34. Rxf5 Rg4 35. Bd5 Rxd4 36. cxd4 Kd6 37. Bxb7 a6 38. Rxf6+ Re6 39. Rf7 a5 40. Kd2 Rg6 41. Rf5 Rg8 42. Be4 Re8 43. Rd5+ Kc7 44. Bd3 Kc6 45. e4 Rh8 46. Ke3 Re8 47. Re5 Rxe5 48. g4 Re8 49. f3 Kd6 50. e5+ Kc7 51. Bb5 Re7 52. b3 Re6 53. Bd3 Re8 54. Ke4 Kc6 55. Bb5+ Kb7 56. Bxe8 Kc8 57. Kf5 Kd8 58. Bg6 Kd7 59. Bf7 Kc7 60. e6 Kd6 61. f4 Kd5 62. e7+ Kxd4 63. e8=Q Kc5 64. Qe7+ Kd4 65. Bc4 Kc3 66. Qe5+ Kb4 67. Bf7 Ka3 68. b4 Kxb4 69. Qe3 Kxa4 70. Qd3 Kb4 71. Qc4+ Ka3 72. Qd4 a4 73. Qc3# 1-0
+>>>>>>> 68457eb2691f22766aeaf34ca114a91e784ba8d3

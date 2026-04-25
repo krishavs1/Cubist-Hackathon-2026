@@ -1,0 +1,32 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtualenvs
+.venv/
+venv/
+env/
+
+# Pytest & coverage caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# macOS metadata
+.DS_Store
+
+# IDE / editor state
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# elo-test scratch dirs (regenerated on each run)
+.tmp_stockfish/
+
+# Local Python build/package artifacts
+*.egg-info/
+build/
+dist/

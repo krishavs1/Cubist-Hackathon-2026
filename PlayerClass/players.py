@@ -24,20 +24,36 @@ class EngineOption:
     command: tuple[str, ...]
 
 
-def _repo_name_for(path: str, repo_root: str) -> str:
-    rel = os.path.relpath(path, repo_root)
+def _repo_name_for(path: str, strategies_root: str) -> str:
+    rel = os.path.relpath(path, strategies_root)
     parts = rel.split(os.sep)
-    if len(parts) >= 3 and parts[-1] == "engine":
-        return parts[-2]
+    if "stockfish" in parts:
+        return parts[-1].replace("-", " ").title()
     if len(parts) >= 2 and parts[-1] == "engine":
         return parts[-2]
+    if len(parts) >= 3 and parts[-2:] == ["chess-ttt", "engine"]:
+        return "chess-ttt"
     return parts[-1]
 
 
-def _command_for_engine_dir(path: str, repo_root: str) -> tuple[str, ...] | None:
+def _command_for_engine_dir(path: str, strategies_root: str) -> tuple[str, ...] | None:
     run_sh = os.path.join(path, "run.sh")
     chess_engine = os.path.join(path, "chess_engine.py")
     engine_py = os.path.join(path, "engine.py")
+    rel = os.path.relpath(path, strategies_root)
+
+    if rel == os.path.join("Strategy1", "engine"):
+        rust_run = os.path.join(strategies_root, "Strategy1", "engines", "rust", "engine", "run.sh")
+        if os.path.isfile(rust_run):
+            return ("bash", rust_run)
+        strategy_engine = os.path.join(strategies_root, "Strategy1", "engines", "mve", "engine.py")
+        if os.path.isfile(strategy_engine):
+            return (sys.executable, strategy_engine, "--heuristic", "reflexion_v1")
+
+    if rel == os.path.join("OneShotOpus", "engine"):
+        opus_engine = os.path.join(strategies_root, "OneShotOpus", "engine.py")
+        if os.path.isfile(opus_engine):
+            return (sys.executable, "-u", opus_engine)
 
     if os.path.basename(path) == "engine" and os.path.isfile(run_sh):
         return ("bash", run_sh)
@@ -55,50 +71,49 @@ def _command_for_engine_dir(path: str, repo_root: str) -> tuple[str, ...] | None
 
 
 def discover_engines(repo_root: str) -> list[EngineOption]:
-    """Find folders that look like runnable chess engines.
+    """Find runnable chess engines inside the repo's `strategies/` folder.
 
     The hackathon repo has a mix of `engine/run.sh`, top-level `run.sh`,
     `engine.py`, and `chess_engine.py` entries. Prefer direct Python entry
     points for top-level folders with interactive launcher scripts.
     """
 
+    strategies_root = os.path.join(repo_root, "strategies")
+    if not os.path.isdir(strategies_root):
+        return []
+
     ignored = {
-        ".git",
         ".venv",
         "__pycache__",
-        "node_modules",
-        "pgns",
-        "gui",
-        "PlayerClass",
-        "strategies",
-        "unused",
-        "subagent_template",
+        "checkers",
+        "tic-tac-toe",
+        "tests",
+        "docs",
+        "arena",
+        "reflexion",
+        "bot",
+        "uci",
     }
     candidates: dict[str, EngineOption] = {}
 
-    for dirpath, dirnames, filenames in os.walk(repo_root):
+    for dirpath, dirnames, filenames in os.walk(strategies_root):
         dirnames[:] = [d for d in dirnames if d not in ignored and not d.startswith(".tmp")]
         if not ({"run.sh", "engine.py", "chess_engine.py"} & set(filenames)):
             continue
 
-        command = _command_for_engine_dir(dirpath, repo_root)
+        command = _command_for_engine_dir(dirpath, strategies_root)
         if command is None:
             continue
 
-        rel = os.path.relpath(dirpath, repo_root)
+        rel = os.path.relpath(dirpath, strategies_root)
         if os.path.isfile(os.path.join(dirpath, "engine", "run.sh")):
             continue
-        if rel == os.path.join("src", "rust-engine", "engine"):
-            binary = os.path.join(repo_root, "src", "rust-engine", "target", "release", "rust-engine")
-            if not os.path.isfile(binary):
-                continue
-        # Skip supporting engine packages when their parent exposes a run.sh
-        # contract, except for Strategy1/engines/mve where the wrapper lives
-        # elsewhere and can be selected as Strategy1.
+        if rel == os.path.join("Strategy1", "engines", "rust", "engine"):
+            continue
         if os.sep in rel and rel.endswith(os.path.join("engines", "mve")):
             continue
 
-        name = _repo_name_for(dirpath, repo_root)
+        name = _repo_name_for(dirpath, strategies_root)
         key = os.path.abspath(dirpath)
         candidates[key] = EngineOption(name=name, root=dirpath, command=command)
 
@@ -149,8 +164,13 @@ class Engine:
     def cycle(self, step: int = 1) -> None:
         if not self.options:
             return
+        self.set_index(self.index + step)
+
+    def set_index(self, index: int) -> None:
+        if not self.options:
+            return
         self.stop()
-        self.index = (self.index + step) % len(self.options)
+        self.index = index % len(self.options)
         self._log.clear()
         self._last_error = None
 
@@ -244,7 +264,6 @@ class Engine:
         if self._read_until(lambda line: "uciok" in line, 5.0) is None:
             self._last_error = "UCI handshake timed out"
             return False
-        self._send("setoption name Depth value 2")
         self._send("isready")
         if self._read_until(lambda line: "readyok" in line, 5.0) is None:
             self._last_error = "isready timed out"
@@ -279,7 +298,7 @@ class Engine:
                     error = "could not start search"
                     return
 
-                line = self._read_until(lambda text: text.startswith("bestmove"), max(8.0, movetime_ms / 1000 + 6.0))
+                line = self._read_until(lambda text: text.startswith("bestmove"), max(12.0, movetime_ms / 1000 + 8.0))
                 if line is None:
                     error = "move timed out"
                     return

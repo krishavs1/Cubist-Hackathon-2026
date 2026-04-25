@@ -49,7 +49,7 @@ BUTTON_HOVER = (58, 62, 72)
 BUTTON_BORDER = (95, 98, 110)
 ENGINE_DELAY_SECONDS = 2.0
 HUMAN_ENGINE_DELAY_SECONDS = 0.35
-ENGINE_MOVETIME_MS = 500
+ENGINE_MOVETIME_MS = 5000
 
 PIECES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "pieces")
 
@@ -244,6 +244,8 @@ def main() -> None:
     pending_engine_results: queue.Queue[tuple[Engine, chess.Move | None, str | None]] = queue.Queue()
     next_engine_at = 0.0
     engine_request_fen: str | None = None
+    dropdown_open: str | None = None
+    engines_paused = False
 
     def reset_game() -> None:
         nonlocal selected, legal_targets, last_move, next_engine_at, engine_request_fen
@@ -256,8 +258,10 @@ def main() -> None:
         engine_request_fen = None
 
     def set_mode(new_mode: str) -> None:
-        nonlocal mode
+        nonlocal mode, engines_paused, dropdown_open
         mode = new_mode
+        engines_paused = False
+        dropdown_open = None
         reset_game()
 
     def push_move(move: chess.Move) -> None:
@@ -303,6 +307,9 @@ def main() -> None:
 
         engine.request_move(board.copy(stack=False), ENGINE_MOVETIME_MS, on_result)
 
+    def engine_name(engine: Engine) -> str:
+        return engine.current_option.name if engine.current_option else "none"
+
     def build_sidebar_buttons() -> list[Button]:
         x0 = BOARD_PX + 16
         y = 86
@@ -313,12 +320,36 @@ def main() -> None:
             Button("mode_engine_engine", pygame.Rect(x0, y + 68, w, 28), "2 Engines", mode == "engine_engine"),
         ]
         y += 114
-        buttons.append(Button("white_engine", pygame.Rect(x0, y, w, 28), f"W: {white_engine.current_option.name if white_engine.current_option else 'none'}"))
-        buttons.append(Button("black_engine", pygame.Rect(x0, y + 34, w, 28), f"B: {black_engine.current_option.name if black_engine.current_option else 'none'}"))
+        buttons.append(Button("white_engine", pygame.Rect(x0, y, w, 28), f"White: {engine_name(white_engine)}"))
+        buttons.append(Button("black_engine", pygame.Rect(x0, y + 34, w, 28), f"Black: {engine_name(black_engine)}"))
+        buttons.append(Button("pause_engines", pygame.Rect(x0, y + 68, w, 28), "Resume Engines" if engines_paused else "Pause Engines", mode == "engine_engine" and engines_paused))
+        return buttons
+
+    def build_dropdown_buttons() -> list[Button]:
+        if dropdown_open is None:
+            return []
+        x0 = BOARD_PX + 16
+        w = SIDEBAR_PX - 32
+        start_y = 314
+        selected_index = white_engine.index if dropdown_open == "white_engine" else black_engine.index
+        buttons: list[Button] = []
+        for i, option in enumerate(engine_options):
+            buttons.append(Button(f"engine_option:{i}", pygame.Rect(x0, start_y + i * 26, w, 24), option.name, i == selected_index))
         return buttons
 
     def handle_sidebar_click(pos: tuple[int, int]) -> bool:
-        nonlocal next_engine_at, engine_request_fen
+        nonlocal next_engine_at, engine_request_fen, dropdown_open, engines_paused
+        for button in build_dropdown_buttons():
+            if button.rect.collidepoint(pos):
+                index = int(button.key.split(":", 1)[1])
+                if dropdown_open == "white_engine":
+                    white_engine.set_index(index)
+                elif dropdown_open == "black_engine":
+                    black_engine.set_index(index)
+                dropdown_open = None
+                reset_game()
+                return True
+
         for button in build_sidebar_buttons():
             if not button.rect.collidepoint(pos):
                 continue
@@ -329,13 +360,17 @@ def main() -> None:
             elif button.key == "mode_engine_engine":
                 set_mode("engine_engine")
             elif button.key == "white_engine":
-                white_engine.cycle()
-                reset_game()
+                dropdown_open = None if dropdown_open == "white_engine" else "white_engine"
             elif button.key == "black_engine":
-                black_engine.cycle()
-                reset_game()
+                dropdown_open = None if dropdown_open == "black_engine" else "black_engine"
+            elif button.key == "pause_engines" and mode == "engine_engine":
+                engines_paused = not engines_paused
+                dropdown_open = None
             next_engine_at = time.time() + 0.15
             engine_request_fen = None
+            return True
+        if pos[0] >= BOARD_PX:
+            dropdown_open = None
             return True
         return pos[0] >= BOARD_PX
 
@@ -360,6 +395,7 @@ def main() -> None:
             and not current_player.thinking()
             and engine_request_fen is None
             and time.time() >= next_engine_at
+            and not (mode == "engine_engine" and engines_paused)
         ):
             request_engine_move(current_player)
 
@@ -427,10 +463,12 @@ def main() -> None:
         mouse_pos = pygame.mouse.get_pos()
         for button in buttons:
             button.draw(screen, status_font, mouse_pos)
-        y = 204
+        y = 306
 
         active_player = player_for_turn(board, mode, white_engine, black_engine)
-        if active_player.is_engine() and active_player.thinking():
+        if mode == "engine_engine" and engines_paused:
+            draw_text(screen, status_font, "Engine match paused", TEXT, (x0, y), max_text_width)
+        elif active_player.is_engine() and active_player.thinking():
             draw_text(screen, status_font, "Engine thinking…", TEXT, (x0, y), max_text_width)
         else:
             draw_text(screen, status_font, f"Turn: {active_player.label()}", TEXT, (x0, y), max_text_width)
@@ -478,7 +516,10 @@ def main() -> None:
 
         help_y = BOARD_PX - 44
         draw_text(screen, status_font, "U: undo   R: reset", TEXT_DIM, (x0, help_y), max_text_width)
-        draw_text(screen, status_font, "Click engine buttons to cycle folders", TEXT_DIM, (x0, help_y + 20), max_text_width)
+        draw_text(screen, status_font, "Use dropdowns to pick engines", TEXT_DIM, (x0, help_y + 20), max_text_width)
+
+        for button in build_dropdown_buttons():
+            button.draw(screen, coord_font, mouse_pos)
 
         pygame.display.flip()
         clock.tick(60)

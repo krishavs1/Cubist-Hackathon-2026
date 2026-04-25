@@ -1,11 +1,7 @@
-"""Two-player local chess GUI.
-
-No engine yet — this is the pure display + interaction layer. Once a
-`Player` abstraction exists, the move-input branch (mouse clicks) becomes
-one implementation and an engine `Player` becomes another.
+"""Local chess GUI with human and engine player modes.
 
 Run from the repo root:
-    pip install pygame
+    pip install pygame python-chess
     python3 gui/chess_gui.py
 
 Controls:
@@ -17,14 +13,24 @@ Controls:
 from __future__ import annotations
 
 import os
+import queue
+import sys
+import time
+from dataclasses import dataclass
 
 import pygame
 import chess
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from PlayerClass import Engine, User, discover_engines
+
 
 SQUARE = 72
 BOARD_PX = SQUARE * 8
-SIDEBAR_PX = 240
+SIDEBAR_PX = 360
 WINDOW_W = BOARD_PX + SIDEBAR_PX
 WINDOW_H = BOARD_PX
 
@@ -37,6 +43,13 @@ LASTMOVE_RGBA = (255, 255, 0, 70)
 SIDEBAR_BG = (28, 28, 32)
 TEXT = (220, 220, 220)
 TEXT_DIM = (140, 140, 150)
+BUTTON_BG = (46, 48, 55)
+BUTTON_ACTIVE = (70, 98, 140)
+BUTTON_HOVER = (58, 62, 72)
+BUTTON_BORDER = (95, 98, 110)
+ENGINE_DELAY_SECONDS = 2.0
+HUMAN_ENGINE_DELAY_SECONDS = 0.35
+ENGINE_MOVETIME_MS = 500
 
 PIECES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "pieces")
 
@@ -55,6 +68,27 @@ _PIECE_FILES = {
     (chess.BLACK, chess.KNIGHT): "bN",
     (chess.BLACK, chess.PAWN):   "bP",
 }
+
+
+@dataclass
+class Button:
+    key: str
+    rect: pygame.Rect
+    label: str
+    active: bool = False
+
+    def draw(self, surface: pygame.Surface, font: pygame.font.Font, mouse_pos: tuple[int, int]) -> None:
+        color = BUTTON_ACTIVE if self.active else BUTTON_HOVER if self.rect.collidepoint(mouse_pos) else BUTTON_BG
+        pygame.draw.rect(surface, color, self.rect, border_radius=6)
+        pygame.draw.rect(surface, BUTTON_BORDER, self.rect, width=1, border_radius=6)
+        label = font.render(self.label, True, TEXT)
+        surface.blit(
+            label,
+            (
+                self.rect.centerx - label.get_width() // 2,
+                self.rect.centery - label.get_height() // 2,
+            ),
+        )
 
 
 def square_to_xy(sq: chess.Square) -> tuple[int, int]:
@@ -162,6 +196,32 @@ def status_text(board: chess.Board) -> str:
     return f"{side} to move" + (" (check)" if board.is_check() else "")
 
 
+def draw_text(surface: pygame.Surface, font: pygame.font.Font, text: str, color: tuple[int, int, int], pos: tuple[int, int], max_width: int) -> None:
+    """Render one clipped text line so long engine output stays in the sidebar."""
+    clipped = text
+    while clipped and font.size(clipped)[0] > max_width:
+        clipped = clipped[:-2]
+    if clipped != text:
+        clipped = clipped.rstrip() + "…"
+    surface.blit(font.render(clipped, True, color), pos)
+
+
+def player_for_turn(board: chess.Board, mode: str, white_engine: Engine, black_engine: Engine) -> User | Engine:
+    if mode == "two_players":
+        return User("White") if board.turn == chess.WHITE else User("Black")
+    if mode == "human_engine":
+        return User("White") if board.turn == chess.WHITE else black_engine
+    return white_engine if board.turn == chess.WHITE else black_engine
+
+
+def mode_label(mode: str) -> str:
+    return {
+        "two_players": "2 Players",
+        "human_engine": "1 Player + Engine",
+        "engine_engine": "2 Engines",
+    }[mode]
+
+
 def main() -> None:
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_W, WINDOW_H))
@@ -173,10 +233,43 @@ def main() -> None:
     coord_font = pygame.font.SysFont("Helvetica,Arial,sans-serif", 12, bold=True)
 
     board = chess.Board()
+    engine_options = discover_engines(REPO_ROOT)
+    white_engine = Engine(engine_options, 0, "White engine")
+    black_engine = Engine(engine_options, 1 if len(engine_options) > 1 else 0, "Black engine")
+    mode = "two_players"
     selected: chess.Square | None = None
     legal_targets: dict[chess.Square, chess.Move] = {}
     last_move: chess.Move | None = None
     move_history: list[str] = []
+    pending_engine_results: queue.Queue[tuple[Engine, chess.Move | None, str | None]] = queue.Queue()
+    next_engine_at = 0.0
+    engine_request_fen: str | None = None
+
+    def reset_game() -> None:
+        nonlocal selected, legal_targets, last_move, next_engine_at, engine_request_fen
+        board.reset()
+        move_history.clear()
+        last_move = None
+        selected = None
+        legal_targets = {}
+        next_engine_at = time.time() + 0.15
+        engine_request_fen = None
+
+    def set_mode(new_mode: str) -> None:
+        nonlocal mode
+        mode = new_mode
+        reset_game()
+
+    def push_move(move: chess.Move) -> None:
+        nonlocal last_move, selected, legal_targets, next_engine_at
+        san = board.san(move)
+        board.push(move)
+        last_move = move
+        move_history.append(san)
+        selected = None
+        legal_targets = {}
+        delay = ENGINE_DELAY_SECONDS if mode == "engine_engine" else HUMAN_ENGINE_DELAY_SECONDS
+        next_engine_at = time.time() + delay
 
     def select(sq: chess.Square) -> None:
         nonlocal selected, legal_targets
@@ -195,26 +288,89 @@ def main() -> None:
             legal_targets = {}
 
     def attempt_move(target: chess.Square) -> bool:
-        nonlocal last_move, selected, legal_targets
         move = legal_targets.get(target)
         if move is None:
             return False
-        san = board.san(move)
-        board.push(move)
-        last_move = move
-        move_history.append(san)
-        selected = None
-        legal_targets = {}
+        push_move(move)
         return True
+
+    def request_engine_move(engine: Engine) -> None:
+        nonlocal engine_request_fen
+        engine_request_fen = board.fen()
+
+        def on_result(move: chess.Move | None, error: str | None) -> None:
+            pending_engine_results.put((engine, move, error))
+
+        engine.request_move(board.copy(stack=False), ENGINE_MOVETIME_MS, on_result)
+
+    def build_sidebar_buttons() -> list[Button]:
+        x0 = BOARD_PX + 16
+        y = 86
+        w = SIDEBAR_PX - 32
+        buttons = [
+            Button("mode_two_players", pygame.Rect(x0, y, w, 28), "2 Players", mode == "two_players"),
+            Button("mode_human_engine", pygame.Rect(x0, y + 34, w, 28), "1 Player + Engine", mode == "human_engine"),
+            Button("mode_engine_engine", pygame.Rect(x0, y + 68, w, 28), "2 Engines", mode == "engine_engine"),
+        ]
+        y += 114
+        buttons.append(Button("white_engine", pygame.Rect(x0, y, w, 28), f"W: {white_engine.current_option.name if white_engine.current_option else 'none'}"))
+        buttons.append(Button("black_engine", pygame.Rect(x0, y + 34, w, 28), f"B: {black_engine.current_option.name if black_engine.current_option else 'none'}"))
+        return buttons
+
+    def handle_sidebar_click(pos: tuple[int, int]) -> bool:
+        nonlocal next_engine_at, engine_request_fen
+        for button in build_sidebar_buttons():
+            if not button.rect.collidepoint(pos):
+                continue
+            if button.key == "mode_two_players":
+                set_mode("two_players")
+            elif button.key == "mode_human_engine":
+                set_mode("human_engine")
+            elif button.key == "mode_engine_engine":
+                set_mode("engine_engine")
+            elif button.key == "white_engine":
+                white_engine.cycle()
+                reset_game()
+            elif button.key == "black_engine":
+                black_engine.cycle()
+                reset_game()
+            next_engine_at = time.time() + 0.15
+            engine_request_fen = None
+            return True
+        return pos[0] >= BOARD_PX
 
     running = True
     while running:
+        while True:
+            try:
+                result_engine, result_move, result_error = pending_engine_results.get_nowait()
+            except queue.Empty:
+                break
+            if result_error:
+                result_engine.add_log(f"! {result_error}")
+                next_engine_at = time.time() + ENGINE_DELAY_SECONDS
+            elif result_move and not board.is_game_over() and board.fen() == engine_request_fen and result_move in board.legal_moves:
+                push_move(result_move)
+            engine_request_fen = None
+
+        current_player = player_for_turn(board, mode, white_engine, black_engine)
+        if (
+            current_player.is_engine()
+            and not board.is_game_over()
+            and not current_player.thinking()
+            and engine_request_fen is None
+            and time.time() >= next_engine_at
+        ):
+            request_engine_move(current_player)
+
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
                 running = False
 
             elif ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_u and board.move_stack:
+                    if current_player.is_engine() and current_player.thinking():
+                        continue
                     board.pop()
                     if move_history:
                         move_history.pop()
@@ -222,14 +378,14 @@ def main() -> None:
                     selected = None
                     legal_targets = {}
                 elif ev.key == pygame.K_r:
-                    board.reset()
-                    move_history.clear()
-                    last_move = None
-                    selected = None
-                    legal_targets = {}
+                    reset_game()
 
             elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                if handle_sidebar_click(ev.pos):
+                    continue
                 if board.is_game_over():
+                    continue
+                if player_for_turn(board, mode, white_engine, black_engine).is_engine():
                     continue
                 sq = xy_to_square(*ev.pos)
                 if sq is None:
@@ -260,16 +416,30 @@ def main() -> None:
         screen.blit(board_surf, (0, 0))
 
         x0 = BOARD_PX + 16
+        max_text_width = SIDEBAR_PX - 32
         y = 16
-        screen.blit(status_font.render(status_text(board), True, TEXT), (x0, y))
+        draw_text(screen, status_font, status_text(board), TEXT, (x0, y), max_text_width)
         y += 32
-        screen.blit(status_font.render(f"Move {board.fullmove_number}", True, TEXT_DIM), (x0, y))
+        draw_text(screen, status_font, f"Move {board.fullmove_number} • {mode_label(mode)}", TEXT_DIM, (x0, y), max_text_width)
         y += 28
+
+        buttons = build_sidebar_buttons()
+        mouse_pos = pygame.mouse.get_pos()
+        for button in buttons:
+            button.draw(screen, status_font, mouse_pos)
+        y = 204
+
+        active_player = player_for_turn(board, mode, white_engine, black_engine)
+        if active_player.is_engine() and active_player.thinking():
+            draw_text(screen, status_font, "Engine thinking…", TEXT, (x0, y), max_text_width)
+        else:
+            draw_text(screen, status_font, f"Turn: {active_player.label()}", TEXT, (x0, y), max_text_width)
+        y += 30
 
         screen.blit(status_font.render("Moves", True, TEXT_DIM), (x0, y))
         y += 22
-        # Show last ~14 plies, paired by move number.
-        recent = move_history[-28:]
+        # Show last ~8 plies, paired by move number.
+        recent = move_history[-16:]
         start_full_move = (len(move_history) - len(recent)) // 2 + 1
         # If we trimmed an odd number of plies, the first shown ply is Black's.
         first_is_black = (len(move_history) - len(recent)) % 2 == 1
@@ -285,18 +455,36 @@ def main() -> None:
                 line = f"{n}. {white}  {black}".rstrip()
                 i += 2
             n += 1
-            screen.blit(status_font.render(line, True, TEXT), (x0, y))
+            draw_text(screen, status_font, line, TEXT, (x0, y), max_text_width)
             y += 20
-            if y > BOARD_PX - 60:
+            if y > 410:
                 break
 
+        y = 420
+        screen.blit(status_font.render("Engine output", True, TEXT_DIM), (x0, y))
+        y += 22
+        log_sources = [white_engine, black_engine] if mode == "engine_engine" else [black_engine]
+        if mode == "two_players":
+            log_sources = [white_engine, black_engine]
+        lines: list[str] = []
+        for engine in log_sources:
+            for line in engine.log_lines(5):
+                lines.append(f"{engine.name[:1]} {line}")
+        if not lines:
+            lines = ["No engine output yet"]
+        for line in lines[-6:]:
+            draw_text(screen, coord_font, line, TEXT if line != "No engine output yet" else TEXT_DIM, (x0, y), max_text_width)
+            y += 17
+
         help_y = BOARD_PX - 44
-        screen.blit(status_font.render("U: undo   R: reset", True, TEXT_DIM), (x0, help_y))
-        screen.blit(status_font.render("Click piece, then target", True, TEXT_DIM), (x0, help_y + 20))
+        draw_text(screen, status_font, "U: undo   R: reset", TEXT_DIM, (x0, help_y), max_text_width)
+        draw_text(screen, status_font, "Click engine buttons to cycle folders", TEXT_DIM, (x0, help_y + 20), max_text_width)
 
         pygame.display.flip()
         clock.tick(60)
 
+    white_engine.stop()
+    black_engine.stop()
     pygame.quit()
 
 

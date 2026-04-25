@@ -25,26 +25,34 @@ graph TD
     AM[Arena Maker:<br>Tournament Infrastructure]:::arena
 
     subgraph Phase 2: Empirical Evaluation
-        Arena{Custom Python<br>Tournament Arena}:::arena
+        Arena[Custom Python<br>tournament arena]:::arena
+        Eval[Anchored Elo vs Stockfish<br>+ engine-vs-engine matrix]:::arena
     end
 
-    subgraph Phase 3: Selection & Execution
-        Win[Winning Methodology:<br>Megaprompt]:::winner
-        Opt[Team Parallel Optimization]:::strategy
-        Final((Final Battle-Tested<br>Chess Engine)):::final
+    subgraph Phase3["Phase 3: Selection & parallel optimization"]
+        Win[Winning methodology:<br>Megaprompt]:::winner
+        T1[Track 1:<br>Reflexion personality]:::strategy
+        T2[Track 2:<br>Rust port for speed]:::strategy
+        T3[Track 3:<br>Borrow rivals’ patterns & QA]:::strategy
+        Final((Final battle-tested<br>Rust engine)):::final
     end
 
     %% Connections
     AM -->|Builds| Arena
+    Arena --> Eval
 
     S1 -->|Prototype 1| Arena
     S2 -->|Prototype 2| Arena
     S3 -->|Prototype 3| Arena
     S4 -->|Prototype 4| Arena
 
-    Arena -->|Statistical Cross-Validation| Win
-    Win -->|Logic Translation| Opt
-    Opt --> Final
+    Eval -->|Cross-validation & calibration| Win
+    Win --> T1
+    Win --> T2
+    Win --> T3
+    T1 --> Final
+    T2 --> Final
+    T3 --> Final
 ```
 
 ## 2. The Four Prompting Methodologies
@@ -311,6 +319,27 @@ The full derivation, raw data, and a sensitivity analysis are in `strategy_evalu
 
 Once the tournament picked megaprompt as the strongest strategy, we kept working on it. The two-layer design (one fixed search, one swappable personality) made it easy to split up: different people could work on different layers at the same time without stepping on each other. Three tracks ran at once.
 
+```mermaid
+flowchart LR
+    classDef strategy fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    classDef winner fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef final fill:#fff3e0,stroke:#f57c00,stroke-width:3px;
+    subgraph Parallel["Parallel optimization (after megaprompt wins)"]
+        direction TB
+        M[Megaprompt selected]:::winner
+        A[Track 1<br>Reflexion / personality]:::strategy
+        B[Track 2<br>Rust port]:::strategy
+        C[Track 3<br>Cross-strategy borrow]:::strategy
+        S[Shipped Rust engine]:::final
+    end
+    M --> A
+    M --> B
+    M --> C
+    A --> S
+    B --> S
+    C --> S
+```
+
 ### 8.1 Track 1: smarter personality (Workstream E)
 
 One teammate ran the Reflexion loop. They took the 10 games `positional_grinder` had lost in the arena, fed the PGN text of those games back to Claude, and asked "what went wrong?". Claude found four patterns in the losses: no piece development, no castling, knights wandering to the rim, and queens coming out too early. It then wrote `reflexion_v1`, which is `positional_grinder` plus small bonuses and penalties for exactly those four patterns. A verification tournament confirmed the new version beat the old one 1-0 head to head, so `reflexion_v1` became the shipped personality.
@@ -329,12 +358,18 @@ The result is one strategy with three people's work compounding at once. The per
 
 ## 9. Final performance of the megaprompt
 
-The **megaprompt** track (Strategy 1) is best summarized by its **final, calibrated playing strength** on the same Stockfish anchor ladder used elsewhere in this document: skills **1 / 3 / 5** at nominal **1000 / 1200 / 1500** Elo, combined with inverse-variance weighting and the trinomial error model in `elo-test/grade.py` (see §4.1).
+| | |
+| --- | --- |
+| **What this is** | Final **Strategy 1 (megaprompt)** strength after the §8 parallel push: the **optimized Rust** UCI engine (`strategies/Strategy1/engines/rust/`, `engine/run.sh`). |
+| **Calibration** | Same three **Stockfish skill** anchors (**1 / 3 / 5** → nominal **1000 / 1200 / 1500** Elo), combined Elo via **inverse-variance weighting** and trinomial score uncertainty in `elo-test/grade.py` (see §4.1–§4.2). |
+| **Run settings** | **60** games total (**20 per anchor**), **100 ms/move**, eight-book openings, alternating colors (arena defaults). |
+| **Combined Elo** | **1740** |
+| **95% confidence interval** | **[1597, 1883]** |
+| **vs skill 1 (~1000)** | **20–0–0** (W–L–D) |
+| **vs skill 3 (~1200)** | **18–1–1** |
+| **vs skill 5 (~1500)** | **15–3–2** |
+| **Where it’s stored** | `strategies/Strategy1/engines/rust/results.json` |
 
-That **final** number comes from the **optimized Rust port** of the megaprompt engine (`strategies/Strategy1/engines/rust/`, UCI via `engine/run.sh`), which carries the same search-and-eval intent as the Darwinian MVE stack (PVS, iterative deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered eval, Reflexion-style corrections) but spends the movetime budget more effectively in native code.
-
-**Calibrated Elo: 1740** (95% **CI [1597, 1883]**), from **60** total grading games (**20 per anchor**), **100 ms/move**, recorded in `strategies/Strategy1/engines/rust/results.json`. Anchor splits on that run: **20–0–0** vs skill 1, **18–1–1** vs skill 3, **15–3–2** vs skill 5 (wins–losses–draws from the engine’s perspective).
-
-For comparison, the **Strategy1** row in §4.2 reflects the **Python** engine under the **80 ms / 12 games per anchor** sweep from an earlier calibration pass. Treat **1740** as the megaprompt line’s **reported final strength** when documenting outcomes from this repository; the two figures differ by **implementation** (Python MVE vs Rust), **time control**, and **games per anchor**, not by a change in the anchor definition.
+This is the number we cite as **megaprompt’s final** calibrated strength in this repo: native speed lets the **same** search-and-eval design (PVS, deepening, TT, quiescence, killers, history, LMR, PeSTO-style tapered scoring, Reflexion-style patches) use the clock budget for **more depth** than the Python MVE. The **Strategy1** row in §4.3 is still the **Python** run (**80 ms**, **12 games per anchor**); it and **1740** differ by **implementation**, **movetime**, and **games per anchor**, not by the anchor ladder itself.
 
 ---

@@ -240,10 +240,24 @@ def pawn_storm(board: chess.Board) -> int:
 
 
 # ============================================================
+# TAPERED PIECE-SQUARE EVALUATOR (the "pesto" personality)
+# ============================================================
+#
+# Smoothly interpolates between midgame and endgame piece-square tables
+# based on remaining material. This is the strongest baseline personality
+# and reflects modern engine design (per Chess Programming Wiki / PeSTO).
+# Imported from the search module so the same numbers drive both the eval
+# and the search's capture-value bookkeeping.
+
+from search import pesto_evaluate as pesto  # noqa: E402  (module-level for hot path)
+
+
+# ============================================================
 # REGISTRY -- name -> evaluator function
 # ============================================================
 
 REGISTRY: Dict[str, Callable[[chess.Board], int]] = {
+    "pesto":               pesto,
     "balanced":            balanced,
     "aggressive_attacker": aggressive_attacker,
     "positional_grinder":  positional_grinder,

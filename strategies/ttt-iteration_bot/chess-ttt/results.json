@@ -36,10 +36,16 @@
       "draws": 1,
       "total": 10
     },
+    "OneShotOpus": {
+      "wins": 0,
+      "losses": 10,
+      "draws": 0,
+      "total": 10
+    },
     "Strategy1": {
       "wins": 0,
-      "losses": 8,
-      "draws": 2,
+      "losses": 10,
+      "draws": 0,
       "total": 10
     }
   },

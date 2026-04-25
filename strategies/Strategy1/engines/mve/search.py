@@ -225,6 +225,25 @@ class Searcher:
         self.killers = [[None, None] for _ in range(256)]
         self.history.clear()
 
+    @staticmethod
+    def _tt_unpack_mate(raw: int, ply: int) -> int:
+        """Convert TT-stored mate scores to this ply (see CPW TT mate score convention)."""
+        s = raw
+        if s >= MATE_IN_MAX:
+            s -= ply
+        elif s <= -MATE_IN_MAX:
+            s += ply
+        return s
+
+    @staticmethod
+    def _tt_pack_mate(score: int, ply: int) -> int:
+        s = score
+        if s >= MATE_IN_MAX:
+            s += ply
+        elif s <= -MATE_IN_MAX:
+            s -= ply
+        return s
+
     def _eval_stm(self, board: chess.Board) -> int:
         """Side-to-move POV wrapper around the white-POV eval_fn."""
         s = self.eval_fn(board)
@@ -311,8 +330,12 @@ class Searcher:
                 return -MATE + ply
             ordered = self._order_moves(board, moves, None, ply)
         else:
-            caps = list(board.generate_legal_captures())
-            ordered = self._order_captures(board, caps)
+            # Captures + quiet queen promotions (generate_legal_captures misses those).
+            caps = [
+                m for m in board.legal_moves
+                if board.is_capture(m) or m.promotion == chess.QUEEN
+            ]
+            ordered = self._order_moves(board, caps, None, ply)
 
         best = -INF if in_check else alpha
         for move in ordered:
@@ -365,7 +388,8 @@ class Searcher:
         tt_move = None
         tt_entry = self.tt.get(key)
         if tt_entry is not None:
-            tt_depth, tt_score, tt_flag, tt_move = tt_entry
+            tt_depth, tt_score_raw, tt_flag, tt_move = tt_entry
+            tt_score = self._tt_unpack_mate(tt_score_raw, ply)
             if not is_root and tt_depth >= depth and not is_pv:
                 if tt_flag == TT_EXACT:
                     return tt_score
@@ -491,31 +515,47 @@ class Searcher:
                 flag = TT_LOWER
             else:
                 flag = TT_EXACT
-            self.tt[key] = (depth, best_score, flag, best_move)
+            packed = self._tt_pack_mate(best_score, ply)
+            self.tt[key] = (depth, packed, flag, best_move)
 
         return best_score
 
-    def go(self, board, soft_time, hard_time, max_depth, verbose=True):
+    def go_ms(self, board: chess.Board, time_limit_ms: int,
+              max_depth: int = 64, verbose: bool = True) -> Optional[chess.Move]:
+        """Iterative deepening with a wall-clock budget in milliseconds."""
+        budget_ms = max(int(time_limit_ms), 10)
+        return self.go(board, budget_ms, max_depth, verbose)
+
+    def go(self, board: chess.Board, budget_ms: int, max_depth: int = 64,
+           verbose: bool = True) -> Optional[chess.Move]:
+        """budget_ms: nominal move budget; ~97% hard deadline, ~86% soft ID stop."""
         self.nodes = 0
         self.stop = False
         self.start_time = time.time()
-        self.time_limit = soft_time
-        self.hard_limit = hard_time
+        self.budget_sec = budget_ms / 1000.0
+        # Spend most of the slot searching; leave slack for OS / python-chess overhead.
+        self.soft_time_end = self.start_time + self.budget_sec * 0.86
+        self.hard_limit = self.start_time + self.budget_sec * 0.97
         self.root_best_move = None
         self.root_best_score = 0
 
         legal = list(board.legal_moves)
         if not legal:
             return None
+        if len(legal) == 1:
+            return legal[0]
 
         best_move = legal[0]
         prev_score = 0
+        score = 0
 
         for depth in range(1, max_depth + 1):
             if self.stop:
                 break
-            elapsed = time.time() - self.start_time
-            if depth > 1 and elapsed >= soft_time:
+            now = time.time()
+            if depth > 1 and now >= self.soft_time_end:
+                break
+            if depth > 1 and (self.hard_limit - now) <= self.budget_sec * 0.10:
                 break
 
             if depth < 4:
@@ -563,6 +603,10 @@ class Searcher:
 
             if abs(score) >= MATE_IN_MAX:
                 break
+            # If the next iteration is unlikely to finish, stop like OneShotOpus.
+            remaining = self.hard_limit - time.time()
+            if remaining <= self.budget_sec * 0.22:
+                break
 
         return best_move
 
@@ -573,11 +617,8 @@ def search(
     eval_fn: Optional[Callable[[chess.Board], int]] = None,
     verbose: bool = True,
 ) -> Optional[chess.Move]:
-    """Top-level search entry point. Constructs a Searcher driven by the
-    chosen evaluator and runs iterative deepening within the time budget."""
+    """Top-level search entry point (fresh TT). Prefer a persistent Searcher in UCI."""
     if eval_fn is None:
         eval_fn = pesto_evaluate
     s = Searcher(eval_fn)
-    soft = max(time_limit_ms / 1000.0 - 0.03, 0.01)
-    hard = soft
-    return s.go(board, soft, hard, 64, verbose=verbose)
+    return s.go_ms(board, time_limit_ms, 64, verbose=verbose)

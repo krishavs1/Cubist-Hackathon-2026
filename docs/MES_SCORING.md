@@ -60,7 +60,7 @@ $$F_i = \frac{\max(x) - x_i}{\max(x) - \min(x)}$$
 | chess-ttt | ~13,600 | **$0.065** | `chess-ttt/COMPUTE.md` |
 | TDD | ~30,000 | **$0.125** | `test-driven-development/COMPUTE.md` |
 | OneShotOpus | ~12,260 | **$0.633** | `OneShotOpus/STRATEGY_ANALYSIS.md` (Opus pricing) |
-| Strategy1 | ~205,000 | **$0.850** | `Strategy1/COMPUTE.md` |
+| Strategy1 | ~105,000 | **$0.850** | `Strategy1/COMPUTE.md` |
 
 *OneShotOpus has the lowest token count but the highest $/token cost due to claude-opus-4-7 pricing ($15 input / $75 output per million tokens).*
 

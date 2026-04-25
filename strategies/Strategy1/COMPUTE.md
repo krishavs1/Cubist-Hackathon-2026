@@ -4,9 +4,9 @@
 
 | Resource | Amount |
 | --- | --- |
-| AI tokens (input) | ~92,000 |
-| AI tokens (output) | ~113,000 |
-| Total tokens | ~205,000 |
+| AI tokens (input) | ~45,000 |
+| AI tokens (output) | ~60,000 |
+| Total tokens | ~105,000 |
 | Estimated API cost | ~$0.70–$1.00 |
 | Local CPU — code generation | < 10 seconds |
 | Local CPU — perft / UCI / self-play test suite | ~12 seconds |

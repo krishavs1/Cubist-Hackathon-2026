@@ -53,7 +53,7 @@
 | chess-ttt | ~13,600 | $0.065 | 1.000 |
 | TDD | ~30,000 | $0.125 | 0.924 |
 | OneShotOpus | ~12,260 | $0.633 | 0.276 |
-| Strategy1 | ~205,000 | $0.850 | 0.000 |
+| Strategy1 | ~105,000 | $0.850 | 0.000 |
 
 *OneShotOpus has the fewest tokens but the second-highest dollar cost: claude-opus-4-7 at $75/M output tokens.*
 

@@ -215,7 +215,7 @@ Elo alone doesn't tell the full story. A methodology that produces a 1400-Elo en
 | chess-ttt | ~13,600 | ~$0.07 | Chess step only; game-agnostic search reused from TTT |
 | TDD | ~30,000 | ~$0.13 | Full TDD loop: tests, implementation, UCI conformance |
 | OneShotOpus | ~12,260 | ~$0.63 | Fewest tokens, but claude-opus-4-7 pricing ($75/M output) |
-| Strategy1 | ~205,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
+| Strategy1 | ~105,000 | ~$0.85 | 53 KB of planning docs + multi-model synthesis + internal tournament |
 
 chess-ttt is the cheapest in absolute dollar terms because it reuses a verified search core and only replaces the game-specific layer. OneShotOpus has the lowest token count but the second-highest dollar cost — claude-opus-4-7 is expensive per token. Strategy1 consumes the most tokens by a wide margin due to its research-heavy upfront investment and multi-model prompting across the team.
 
@@ -226,7 +226,7 @@ chess-ttt is the cheapest in absolute dollar terms because it reuses a verified 
 | TDD | ~35,000 | ~$0.13 | Quiescence search, TT, LMR, null-move, PST tuning |
 | chess-ttt | ~38,000 | ~$0.15 | Same features, but requires forking the shared search core |
 | Strategy1 | ~76,000 | ~$0.30 | Reflexion v2/v3, endgame eval, tapered PST variants, time tuning |
-| OneShotOpus | ~varies | ~$1.80–3.00 | Texel tuning, NNUE — expensive on Opus; ~$0.20 if delegated to Haiku |
+| OneShotOpus | ~38,000 | ~$1.80–3.00 | Texel tuning, NNUE — expensive on Opus; ~$0.20 if delegated to Haiku |
 
 TDD and chess-ttt are the cheapest to optimize because their search stacks have clear, well-understood gaps (no TT, no quiescence). Strategy1's optimization loop is more expensive because it runs internal tournaments to validate each change. OneShotOpus is the most expensive to optimize on-methodology because its remaining improvements (learned evaluation) are inherently token-heavy on a frontier model.
 

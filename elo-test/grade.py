@@ -12,12 +12,16 @@ from datetime import datetime
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 SRC_DIR = os.path.join(REPO_ROOT, "src")
+LEADERBOARD_PATH = os.path.join(REPO_ROOT, "LEADERBOARD.md")
 STOCKFISH_DIR = os.path.join(SCRIPT_DIR, "stockfish_bin")
 STOCKFISH_PATH = os.path.join(STOCKFISH_DIR, "stockfish")
 
-# Stockfish Calibration Settings
-STOCKFISH_ANCHOR_ELO = 1000.0  # Assumed Elo for Skill Level 1
-STOCKFISH_SKILL_LEVEL = 1
+# Pro-Level Calibration Settings (The Curve)
+ANCHORS = {
+    1: 1000.0,
+    3: 1200.0,
+    5: 1500.0
+}
 
 def ensure_stockfish():
     """Detects or installs Stockfish."""
@@ -74,24 +78,25 @@ def discover_methodologies():
                 methods[name] = run_sh
     return methods
 
-def fishtest_elo(w, l, d):
-    """Calculates Elo and 95% CI using Fishtest trinomial logic."""
+def fishtest_stats(w, l, d):
+    """Calculates relative Elo and Standard Error using trinomial logic."""
     n = w + l + d
-    if n == 0: return 0, -1000, 1000
+    if n == 0: return 0, 1000.0 # Infinite error for 0 games
     
     score = (w + 0.5 * d) / n
     score = max(0.0001, min(0.9999, score))
     mu = score
     var = max((w/n * (1-mu)**2 + d/n * (0.5-mu)**2 + l/n * (0-mu)**2), 1e-6)
-    se = math.sqrt(var / n)
-    
-    score_low = max(0.0001, mu - 1.96 * se)
-    score_high = min(0.9999, mu + 1.96 * se)
+    se_score = math.sqrt(var / n)
     
     def score_to_elo(s):
         return -400 * math.log10(1/s - 1)
     
-    return score_to_elo(mu), score_to_elo(score_low), score_to_elo(score_high)
+    elo = score_to_elo(mu)
+    derivative = 400 / (math.log(10) * mu * (1 - mu))
+    se_elo = se_score * derivative
+    
+    return elo, se_elo
 
 def run_matchup(name_a, path_a, name_b, path_b, games, movetime):
     print(f"\n>>> Matchup: {name_a} vs {name_b} ({games} games)")
@@ -109,55 +114,110 @@ def run_matchup(name_a, path_a, name_b, path_b, games, movetime):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--games", type=int, default=50)
+    parser.add_argument("--games", type=int, default=60, help="Games per matchup")
     parser.add_argument("--movetime", type=int, default=100)
     parser.add_argument("--report", action="store_true")
+    parser.add_argument("--cross-validate", action="store_true", help="Test engines against each other")
     args = parser.parse_args()
 
     sf_path = ensure_stockfish()
-    anchor = StockfishWrapper(STOCKFISH_SKILL_LEVEL, sf_path)
     methods = discover_methodologies()
+    method_names = list(methods.keys())
     
     if not methods:
         print("No engines found in src/. Add your methodology folder with an 'engine/run.sh' to start.")
         return
 
-    if not args.report:
-        print(f"\nEngine Benchmarking (Anchor: Stockfish Skill {STOCKFISH_SKILL_LEVEL} = {STOCKFISH_ANCHOR_ELO} Elo)")
-        print(f"{'Name':<18} {'Elo':<6} {'95% CI':<14}")
-        print("-" * 40)
-
-    all_results = {}
-    for name in methods:
-        results_path = os.path.join(SRC_DIR, name, "results.json")
-        data = {"name": name, "matchups": {}}
-        if os.path.exists(results_path):
-            with open(results_path, "r") as f:
-                try: data.update(json.load(f))
+    # Load all existing data
+    all_data = {}
+    for name in method_names:
+        rp = os.path.join(SRC_DIR, name, "results.json")
+        all_data[name] = {"name": name, "anchors": {}, "cross_validation": {}}
+        if os.path.exists(rp):
+            with open(rp, "r") as f:
+                try: all_data[name].update(json.load(f))
                 except: pass
 
-        if not args.report:
-            if "stockfish_anchor" not in data["matchups"]:
-                outcomes = run_matchup(name, methods[name], anchor.name, anchor.run_sh, args.games, args.movetime)
-                if outcomes:
-                    data["matchups"]["stockfish_anchor"] = {"wins": outcomes.count(1.0), "losses": outcomes.count(0.0), "draws": outcomes.count(0.5), "total": len(outcomes)}
-            
-            if "stockfish_anchor" in data["matchups"]:
-                m = data["matchups"]["stockfish_anchor"]
-                elo, low, high = fishtest_elo(m["wins"], m["losses"], m["draws"])
-                data.update({"elo": STOCKFISH_ANCHOR_ELO + elo, "elo_ci_lower": STOCKFISH_ANCHOR_ELO + low, "elo_ci_upper": STOCKFISH_ANCHOR_ELO + high, "graded_at": datetime.now().isoformat()})
-                with open(results_path, "w") as f: json.dump(data, f, indent=2)
-                
-                print(f"{name:<18} {data.get('elo', 0):.0f} [{data.get('elo_ci_lower', 0):.0f}, {data.get('elo_ci_upper', 0):.0f}]")
-        
-        if "elo" in data:
-            all_results[name] = data
+    if not args.report:
+        if args.cross_validate:
+            # Engine vs Engine Mode
+            for i, name_a in enumerate(method_names):
+                for name_b in method_names[i+1:]:
+                    if name_b not in all_data[name_a]["cross_validation"]:
+                        outcomes = run_matchup(name_a, methods[name_a], name_b, methods[name_b], args.games, args.movetime)
+                        if outcomes:
+                            # Perspective of A
+                            w = outcomes.count(1.0)
+                            l = outcomes.count(0.0)
+                            d = outcomes.count(0.5)
+                            all_data[name_a]["cross_validation"][name_b] = {"wins": w, "losses": l, "draws": d, "total": len(outcomes)}
+                            # Perspective of B
+                            all_data[name_b]["cross_validation"][name_a] = {"wins": l, "losses": w, "draws": d, "total": len(outcomes)}
+                            
+                            for n in [name_a, name_b]:
+                                with open(os.path.join(SRC_DIR, n, "results.json"), "w") as f:
+                                    json.dump(all_data[n], f, indent=2)
+        else:
+            # Stockfish Calibration Mode (Default)
+            games_per_anchor = max(2, args.games // len(ANCHORS))
+            if games_per_anchor % 2 != 0: games_per_anchor += 1
 
-    if args.report and all_results:
-        print("\nEngine Performance (Stockfish Calibration)")
+            for name in method_names:
+                for skill, base_elo in ANCHORS.items():
+                    anchor_key = f"skill_{skill}"
+                    if anchor_key not in all_data[name]["anchors"]:
+                        anchor = StockfishWrapper(skill, sf_path)
+                        outcomes = run_matchup(name, methods[name], anchor.name, anchor.run_sh, games_per_anchor, args.movetime)
+                        if outcomes:
+                            all_data[name]["anchors"][anchor_key] = {
+                                "wins": outcomes.count(1.0),
+                                "losses": outcomes.count(0.0),
+                                "draws": outcomes.count(0.5),
+                                "total": len(outcomes),
+                                "base_elo": base_elo
+                            }
+
+                # Recompute Absolute Elo
+                if all_data[name]["anchors"]:
+                    estimates, variances = [], []
+                    for anchor_key, m in all_data[name]["anchors"].items():
+                        rel_elo, se_elo = fishtest_stats(m["wins"], m["losses"], m["draws"])
+                        estimates.append(m["base_elo"] + rel_elo)
+                        variances.append(se_elo**2)
+                    
+                    weights = [1/v for v in variances]
+                    total_weight = sum(weights)
+                    combined_elo = sum(e * w for e, w in zip(estimates, weights)) / total_weight
+                    combined_se = 1 / math.sqrt(total_weight)
+                    
+                    all_data[name].update({
+                        "elo": combined_elo,
+                        "elo_ci_lower": combined_elo - 1.96 * combined_se,
+                        "elo_ci_upper": combined_elo + 1.96 * combined_se,
+                        "graded_at": datetime.now().isoformat()
+                    })
+                    with open(os.path.join(SRC_DIR, name, "results.json"), "w") as f:
+                        json.dump(all_data[name], f, indent=2)
+
+    # Reporting
+    if args.cross_validate:
+        print(f"\nCross-Validation Matrix (Engine vs Engine Outcomes)")
+        print(f"{'Name':<18} | " + " | ".join(f"{n[:8]:<8}" for n in method_names))
+        print("-" * (21 + 11 * len(method_names)))
+        for name_a in method_names:
+            row = f"{name_a[:18]:<18} | "
+            for name_b in method_names:
+                if name_a == name_b: row += f"{'-':^8} | "
+                elif name_b in all_data[name_a]["cross_validation"]:
+                    m = all_data[name_a]["cross_validation"][name_b]
+                    row += f"{m['wins']}-{m['losses']}-{m['draws']}^8 | ".replace("^8", "").ljust(8) + " | "
+                else: row += f"{'?':^8} | "
+            print(row)
+    else:
+        print(f"\nEngine Performance (Absolute Calibration Curve)")
         print(f"{'Name':<18} {'Elo':<6} {'95% CI':<14}")
         print("-" * 40)
-        sorted_res = sorted(all_results.values(), key=lambda x: x.get('elo', 0), reverse=True)
+        sorted_res = sorted([d for d in all_data.values() if "elo" in d], key=lambda x: x['elo'], reverse=True)
         for d in sorted_res:
             print(f"{d['name']:<18} {d.get('elo', 0):.0f} [{d.get('elo_ci_lower', 0):.0f}, {d.get('elo_ci_upper', 0):.0f}]")
 

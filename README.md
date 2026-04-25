@@ -1,4 +1,4 @@
-# Cubist Systematic Hackathon: Optimizing AI-driven Strategies 
+# Cubist Systematic Strategies Hackathon: Optimizing AI-driven Strategies 
 
 ## 1. Introduction
 
